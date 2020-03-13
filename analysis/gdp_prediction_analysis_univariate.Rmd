@@ -225,7 +225,7 @@ mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
 ```
 
 ### ASE values across Batches
-```{r}
+```{r message=FALSE, warning=FALSE}
 ASEs = mdl_compare$get_tabular_metrics(ases = TRUE)
 print(ASEs)
 ```

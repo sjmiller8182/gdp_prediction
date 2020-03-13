@@ -1,7 +1,7 @@
 GDP Prediction
 ================
 Nikhil Gupta
-2020-03-13 06:25:47
+2020-03-13 06:34:06
 
 -   [Setup](#setup)
 -   [Stationarity](#stationarity)
@@ -347,20 +347,6 @@ mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
 
 ``` r
 ASEs = mdl_compare$get_tabular_metrics(ases = TRUE)
-```
-
-    ## 
-    ## Attaching package: 'magrittr'
-
-    ## The following object is masked from 'package:purrr':
-    ## 
-    ##     set_names
-
-    ## The following object is masked from 'package:tidyr':
-    ## 
-    ##     extract
-
-``` r
 print(ASEs)
 ```
 
