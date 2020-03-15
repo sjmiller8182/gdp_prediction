@@ -1,7 +1,7 @@
 GDP Prediction
 ================
 Nikhil Gupta
-2020-03-13 06:34:06
+2020-03-15 11:39:25
 
 -   [Setup](#setup)
 -   [Stationarity](#stationarity)
@@ -23,6 +23,7 @@ Nikhil Gupta
     -   [Factored Form](#factored-form-1)
     -   [Forecasting](#forecasting-1)
 -   [Visualizing Results](#visualizing-results)
+    -   [Compare Multiple Realizations](#compare-multiple-realizations)
     -   [ASE values across Batches](#ase-values-across-batches)
     -   [Forecasts across Batches](#forecasts-across-batches)
 -   [Statistical Comparison](#statistical-comparison)
@@ -322,8 +323,8 @@ Visualizing Results
 -------------------
 
 ``` r
-models = list("ARMA Model 1" = list(phi = est.s.mle$phi, theta = est.s.mle$theta, sliding_ase = TRUE),
-              "ARIMA Model 1" = list(phi = est.ns.mle$phi, theta = est.ns.mle$theta, d = 1, s = 0, sliding_ase = TRUE)
+models = list("ARMA Model 1" = list(phi = est.s.mle$phi, theta = est.s.mle$theta, vara = est.s.mle$avar, sliding_ase = TRUE),
+              "ARIMA Model 1" = list(phi = est.ns.mle$phi, theta = est.ns.mle$theta, d = 1, s = 0, vara = est.ns.mle$avar, sliding_ase = TRUE)
               )
 ```
 
@@ -342,6 +343,14 @@ mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
     ## 
     ## Computing metrics for:  ARIMA Model 1 
     ## Number of batches expected:  73
+
+### Compare Multiple Realizations
+
+``` r
+mdl_compare$plot_multiple_realizations(n.realizations = 4, seed = 100, scales = 'fixed')
+```
+
+![](gdp_prediction_analysis_univariate_files/figure-markdown_github/unnamed-chunk-26-1.png)![](gdp_prediction_analysis_univariate_files/figure-markdown_github/unnamed-chunk-26-2.png)![](gdp_prediction_analysis_univariate_files/figure-markdown_github/unnamed-chunk-26-3.png)![](gdp_prediction_analysis_univariate_files/figure-markdown_github/unnamed-chunk-26-4.png)
 
 ### ASE values across Batches
 
@@ -384,7 +393,7 @@ ASEs %>%
 mdl_compare$plot_histogram_ases()
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-markdown_github/unnamed-chunk-28-1.png)
+![](gdp_prediction_analysis_univariate_files/figure-markdown_github/unnamed-chunk-29-1.png)
 
 ### Forecasts across Batches
 
@@ -392,7 +401,7 @@ mdl_compare$plot_histogram_ases()
 mdl_compare$plot_forecasts(only_sliding = TRUE)
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-markdown_github/unnamed-chunk-29-1.png)![](gdp_prediction_analysis_univariate_files/figure-markdown_github/unnamed-chunk-29-2.png)
+![](gdp_prediction_analysis_univariate_files/figure-markdown_github/unnamed-chunk-30-1.png)![](gdp_prediction_analysis_univariate_files/figure-markdown_github/unnamed-chunk-30-2.png)
 
 ``` r
 forecasts = mdl_compare$get_tabular_metrics(ases = FALSE)
