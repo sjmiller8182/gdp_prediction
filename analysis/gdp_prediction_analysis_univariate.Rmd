@@ -226,8 +226,17 @@ mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
 
 ### Compare Multiple Realizations
 
+```{r fig.height=15, fig.width=10, message=FALSE, warning=FALSE}
+mdl_compare$plot_multiple_realizations(n.realizations = 6, seed = 100, plot = "realization", scales = 'fixed')
+```
+
 ```{r fig.height=6, message=FALSE, warning=FALSE}
-mdl_compare$plot_multiple_realizations(n.realizations = 4, seed = 100, scales = 'fixed')
+mdl_compare$plot_multiple_realizations(n.realizations = 6, seed = 100, plot = c("acf", "spectrum"), scales = 'fixed')
+```
+
+### Compare Simple Forecasts
+```{r fig.height=4, fig.width=12}
+mdl_compare$plot_simple_forecasts()
 ```
 
 ### ASE values across Batches
