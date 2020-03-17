@@ -242,7 +242,7 @@ We will continue with the smaller model AR(11).
 aicbic(dif1, p = 0:16, silent = T)
 ```
 
-#### AR(12)
+#### AR(11)
 
 ```{r}
 est.ns.mle <- est.arma.wge(dif1, p = 11, q = 0)
