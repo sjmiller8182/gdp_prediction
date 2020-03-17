@@ -1,7 +1,7 @@
 GDP Prediction
 ================
 Nikhil Gupta
-2020-03-16 19:50:24
+2020-03-16 19:58:43
 
 ## Setup
 
@@ -503,9 +503,9 @@ est.ns.mle$avar
 
     ## [1] 9.047744
 
-(1-0.6227\(B\)+0.8766\(B^2\))(1+1.7743\(B\)+0.8617\(B^2\))(1-1.5025\(B\)+0.8361\(B^2\))(1+0.5210\(B\)+0.8091\(B^2\))(1+1.0965\(B\)+0.6776\(B^2\))(1-0.6025\(B\))(1
+**(1-0.6227\(B\)+0.8766\(B^2\))(1+1.7743\(B\)+0.8617\(B^2\))(1-1.5025\(B\)+0.8361\(B^2\))(1+0.5210\(B\)+0.8091\(B^2\))(1+1.0965\(B\)+0.6776\(B^2\))(1-0.6025\(B\))(1
 - \(B\))(\(X_{t}\) + 6.3887179) = \(a_{t}\) with \(\sigma_{a}^2\) =
-9.0477442
+9.0477442**
 
 ### Forecasting
 
@@ -527,8 +527,8 @@ f = fore.aruma.wge(x, phi=phi, theta = theta, d = d, s = s,
 ## Visualizing Results
 
 ``` r
-models = list("ARMA Model 1" = list(phi = est.s.mle$phi, theta = est.s.mle$theta, sliding_ase = TRUE),
-              "ARIMA Model 1" = list(phi = est.ns.mle$phi, theta = est.ns.mle$theta, d = 1, s = 0, sliding_ase = TRUE)
+models = list("ARMA Model 1" = list(phi = est.s.mle$phi, theta = est.s.mle$theta, vara = est.s.mle$avar, sliding_ase = TRUE),
+              "ARIMA Model 1" = list(phi = est.ns.mle$phi, theta = est.ns.mle$theta, d = 1, s = 0, vara = est.ns.mle$avar, sliding_ase = TRUE)
               )
 ```
 
@@ -547,6 +547,28 @@ mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
     ## 
     ## Computing metrics for:  ARIMA Model 1 
     ## Number of batches expected:  73
+
+### Compare Multiple Realizations
+
+``` r
+mdl_compare$plot_multiple_realizations(n.realizations = 6, seed = 100, plot = "realization", scales = 'fixed')
+```
+
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+
+``` r
+mdl_compare$plot_multiple_realizations(n.realizations = 6, seed = 100, plot = c("acf", "spectrum"), scales = 'fixed')
+```
+
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-36-2.png)<!-- -->
+
+### Compare Simple Forecasts
+
+``` r
+mdl_compare$plot_simple_forecasts()
+```
+
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->
 
 ### ASE values across Batches
 
@@ -589,7 +611,7 @@ ASEs %>%
 mdl_compare$plot_histogram_ases()
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-40-1.png)<!-- -->
 
 ### Forecasts across Batches
 
@@ -597,7 +619,7 @@ mdl_compare$plot_histogram_ases()
 mdl_compare$plot_forecasts(only_sliding = TRUE)
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-38-1.png)<!-- -->![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-38-2.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-41-2.png)<!-- -->
 
 ``` r
 forecasts = mdl_compare$get_tabular_metrics(ases = FALSE)
