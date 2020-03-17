@@ -1,7 +1,7 @@
 GDP Prediction
 ================
 Nikhil Gupta
-2020-03-16 19:58:43
+2020-03-16 20:14:04
 
 ## Setup
 
@@ -295,23 +295,52 @@ f = fore.arma.wge(x, phi=phi, theta = theta,
 
 Next we will evaluate this as a non stationary model.
 
+### Model ID
+
+An overfit table should show the non-stationary characteristics. The
+overfit table with \(p = 24\) has a root with absolute reciprocal of
+0.9890, which is suggestive of a unit root.
+
+``` r
+vals <- est.ar.wge(x, p = 24, type = 'burg')
+```
+
+    ## 
+    ## Coefficients of Original polynomial:  
+    ## 0.3548 0.1412 0.0020 0.0885 -0.0911 0.1152 -0.0194 -0.2008 0.2358 0.1097 0.1403 -0.2764 0.0380 0.1195 -0.1324 0.1489 -0.1292 0.1275 0.0780 -0.0952 0.0974 0.0289 -0.0618 0.0979 
+    ## 
+    ## Factor                 Roots                Abs Recip    System Freq 
+    ## 1-0.9890B              1.0111               0.9890       0.0000
+    ## 1+1.3355B+0.9320B^2   -0.7165+-0.7481i      0.9654       0.3716
+    ## 1-0.5630B+0.9058B^2    0.3108+-1.0037i      0.9517       0.2022
+    ## 1+1.7817B+0.8915B^2   -0.9993+-0.3509i      0.9442       0.4463
+    ## 1+0.4379B+0.8890B^2   -0.2463+-1.0316i      0.9429       0.2873
+    ## 1+0.8052B+0.8776B^2   -0.4587+-0.9638i      0.9368       0.3207
+    ## 1-1.7870B+0.8601B^2    1.0388+-0.2890i      0.9274       0.0432
+    ## 1+0.9137B             -1.0945               0.9137       0.5000
+    ## 1-1.4956B+0.7909B^2    0.9455+-0.6086i      0.8893       0.0910
+    ## 1-1.3605B+0.7783B^2    0.8740+-0.7217i      0.8822       0.1099
+    ## 1-0.8763B+0.7363B^2    0.5951+-1.0020i      0.8581       0.1647
+    ## 1+1.5782B+0.7241B^2   -1.0898+-0.4397i      0.8509       0.4390
+    ## 1-0.1355B+0.6534B^2    0.1037+-1.2327i      0.8084       0.2366
+    ##   
+    ## 
+
 Because of the extended autocorrelations in the data, we will take the
 first difference and check the resultant data for
-stationarity
-
-### Model ID
+stationarity.
 
 ``` r
 dif1 = artrans.wge(x, phi.tr = 1)
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
 ``` r
 px = plotts.sample.wge(dif1)
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-18-2.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->
 
   - ACF is indicatove of a MA(1) model with positive theta since most
     ACFs die down after lag = 1 and there is a dip in the Spectral
@@ -324,7 +353,7 @@ px = plotts.sample.wge(dif1)
 tswgewrapped::check_stationarity(dif1)
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
 
     ## [1] TRUE
 
@@ -421,7 +450,7 @@ data.
 white_noise_eval(est.ns.mle$res, 0, 1)
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
 
     ## At least one of the 'ljung_box' tests rejected the null hypothesis that the data is consistent with white noise at an significance level of  0.05
 
@@ -455,7 +484,7 @@ aicbic(dif1, p = 0:16, silent = T)
     ## 67 11 0 2.528362
     ## 50  8 1 2.536991
 
-#### AR(12)
+#### AR(11)
 
 ``` r
 est.ns.mle <- est.arma.wge(dif1, p = 11, q = 0)
@@ -487,7 +516,7 @@ noise.
 white_noise_eval(est.ns.mle$res, 11, 0)
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
     ## None of the 'ljung_box' tests rejected the null hypothesis that the data is consistent with white noise at an significance level of  0.05
 
@@ -522,7 +551,7 @@ f = fore.aruma.wge(x, phi=phi, theta = theta, d = d, s = s,
                   n.ahead = n.ahead, limits=TRUE, lastn = FALSE, plot = TRUE)
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
 
 ## Visualizing Results
 
@@ -554,13 +583,13 @@ mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
 mdl_compare$plot_multiple_realizations(n.realizations = 6, seed = 100, plot = "realization", scales = 'fixed')
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
 
 ``` r
 mdl_compare$plot_multiple_realizations(n.realizations = 6, seed = 100, plot = c("acf", "spectrum"), scales = 'fixed')
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-36-2.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-37-2.png)<!-- -->
 
 ### Compare Simple Forecasts
 
@@ -568,7 +597,7 @@ mdl_compare$plot_multiple_realizations(n.realizations = 6, seed = 100, plot = c(
 mdl_compare$plot_simple_forecasts()
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-38-1.png)<!-- -->
 
 ### ASE values across Batches
 
@@ -611,7 +640,7 @@ ASEs %>%
 mdl_compare$plot_histogram_ases()
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-40-1.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->
 
 ### Forecasts across Batches
 
@@ -619,7 +648,7 @@ mdl_compare$plot_histogram_ases()
 mdl_compare$plot_forecasts(only_sliding = TRUE)
 ```
 
-![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-41-2.png)<!-- -->
+![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->![](gdp_prediction_analysis_univariate_files/figure-gfm/unnamed-chunk-42-2.png)<!-- -->
 
 ``` r
 forecasts = mdl_compare$get_tabular_metrics(ases = FALSE)
