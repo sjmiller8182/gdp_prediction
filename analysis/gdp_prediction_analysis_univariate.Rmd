@@ -169,9 +169,19 @@ f = fore.arma.wge(x, phi=phi, theta = theta,
 
 Next we will evaluate this as a non stationary model.
 
-Because of the extended autocorrelations in the data, we will take the first difference and check the resultant data for stationarity
+
 
 ### Model ID
+
+An overfit table should show the non-stationary characteristics.
+The overfit table with $p = 24$ has a root with absolute reciprocal of 0.9890, which is suggestive of a unit root.
+
+```{r}
+vals <- est.ar.wge(x, p = 24, type = 'burg')
+```
+
+Because of the extended autocorrelations in the data, we will take the first difference and check the resultant data for stationarity.
+
 ```{r}
 dif1 = artrans.wge(x, phi.tr = 1)
 px = plotts.sample.wge(dif1)
