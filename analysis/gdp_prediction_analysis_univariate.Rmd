@@ -28,6 +28,7 @@ library(tswge)
 library(tswgewrapped)
 library(tidyverse)
 library(ggplot2)
+library(tseries)
 ```
 
 ```{r}
@@ -96,11 +97,49 @@ est.s.mle = est.arma.wge(x, p = 2, q = 1)
 est.s.mle$theta
 ```
 
+#### White Noise Assessment
+
+An assessment of the ARMA(2, 1) residuals rejects the residuals being consistent with white noise.
+We will fit a higher order model to the differenced data.
+
+```{r}
+white_noise_eval(est.s.mle$res, 2, 1)
+```
+
+#### Higher Order Fit
+
+Since the ARMA(2, 1) does not appear to be sufficient to whiten the residuals, 
+a higher order model, ARMA(13, 1) was fit.
+The models suggested by BIC are not sufficient to whiten the residuals.
+
+```{r}
+aicbic(x, p = 0:16, silent = T)
+```
+
+#### ARMA(13, 1)
+
+```{r}
+est.s.mle <- est.arma.wge(x, p = 13, q = 1)
+```
+
+```{r}
+est.s.mle$theta
+```
+
+
+#### White Noise Assessment
+
+The visual assessment of the ARMA(13, 1) on the residuals of the fit confirms that the residuals appear to be consistent with white noise.
+The Ljung-Box test fails to reject the null hypothesis, at K = 24 and K = 48, that the residuals are white noise.
+
+```{r}
+white_noise_eval(est.s.mle$res, 13, 1)
+```
 
 
 **OBSERVATIONS**
 
-* This clears a lot of confusion. **Even when fitting a stationary ARMA model, we get an estimate of phi = 0.9917 which is very close to 1 (non stationary)**. Hence the confusion that we had before can be cleared now. The data most definitely is coming from a non stationary process. For the sake of completeness, we will continue modeling with this stationary model and see how well it performs.
+* This clears a lot of confusion. **Even when fitting a stationary ARMA model, we get an estimated root of 0.9928 in the factor table which is very close to 1 (non stationary)**. Hence the confusion that we had before can be cleared now. The data most definitely is coming from a non stationary process. For the sake of completeness, we will continue modeling with this stationary model and see how well it performs.
 
 
 ### Factored Form
@@ -109,7 +148,7 @@ est.s.mle$theta
 est.s.mle$avar
 ```
 
-**(1 - 0.9917B)(1 - 0.2257B)$X_{t}$ = (1 - 0.9128)$a_{t}$  with $\sigma_{a}^2$ = `r est.s.mle$avar`**
+**(1-0.993$B$)(1-0.604$B$+0.888$B^2$)(1+1.794$B$+0.878$B^2$)(1+0.539$B$+0.841$B^2$)(1-1.424B+0.807$B^2$)(1-1.662$B$+0.742$B^2$)(1+1.155$B$+0.720$B^2$)($X_{t}$ + `r mean(x)`) = (1-0.882B) $a_{t}$  with $\sigma_{a}^2$ = `r est.s.mle$avar`**
 
 
 ### Forecasting 
@@ -185,6 +224,38 @@ est.ns.mle = est.arma.wge(dif1, p = 0, q = 1)
 est.ns.mle$theta
 ```
 
+#### White Noise Assessment
+
+An assessment of the MA(1) residuals rejects the residuals being consistent with white noise.
+We will fit a higher order model to the differenced data.
+
+```{r}
+white_noise_eval(est.ns.mle$res, 0, 1)
+```
+
+#### Higher Order Fit
+
+BIC suggests an AR(11) and AIC suggests an ARMA(12, 1) of models with options up to ARMA(16, 5).
+We will continue with the smaller model AR(11).
+
+```{r}
+aicbic(dif1, p = 0:16, silent = T)
+```
+
+#### AR(12)
+
+```{r}
+est.ns.mle <- est.arma.wge(dif1, p = 11, q = 0)
+```
+
+#### White Noise Assessment
+
+The visual assessment of the AR(11) on the residuals of the fit confirms that the residuals appear to be consistent with white noise.
+The Ljung-Box test fails to reject the null hypothesis, at K = 24 and K = 48, that the residuals are white noise.
+
+```{r}
+white_noise_eval(est.ns.mle$res, 11, 0)
+```
 
 ### Factored Form
 
@@ -192,8 +263,7 @@ est.ns.mle$theta
 est.ns.mle$avar
 ```
 
-**(1 - B)$X_{t}$ = (1 - 0.8881)$a_{t}$  with $\sigma_{a}^2$ = `r est.ns.mle$avar`**
-
+**(1-0.6227$B$+0.8766$B^2$)(1+1.7743$B$+0.8617$B^2$)(1-1.5025$B$+0.8361$B^2$)(1+0.5210$B$+0.8091$B^2$)(1+1.0965$B$+0.6776$B^2$)(1-0.6025$B$)(1 - $B$)($X_{t}$ + `r mean(x)`) = $a_{t}$  with $\sigma_{a}^2$ = `r est.ns.mle$avar`**
 
 ### Forecasting
 
