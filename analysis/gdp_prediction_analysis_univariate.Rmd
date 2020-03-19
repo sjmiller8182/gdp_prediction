@@ -85,84 +85,22 @@ batch_size = 50 ## 12 years to predict the next 2 quarters
 ### Model ID
 
 ```{r}
-aic5.wge(x)
+aicbic(x, p = 0:5, q = 0:2, merge = TRUE, sort_by = 'bic', silent = TRUE)
 ```
 
-### Parameter Estimation
+### ARMA(2,1) Parameter Estimation
 ```{r}
-est.s.mle = est.arma.wge(x, p = 2, q = 1)
-```
-
-```{r}
-est.s.mle$theta
-```
-
-#### White Noise Assessment
-
-An assessment of the ARMA(2, 1) residuals rejects the residuals being consistent with white noise.
-We will fit a higher order model to the differenced data.
-
-```{r}
-white_noise_eval(est.s.mle$res, 2, 1)
-```
-
-#### Higher Order Fit
-
-Since the ARMA(2, 1) does not appear to be sufficient to whiten the residuals, 
-a higher order model, ARMA(13, 1) was fit.
-The models suggested by BIC are not sufficient to whiten the residuals.
-
-```{r}
-aicbic(x, p = 0:16, silent = T)
-```
-
-#### ARMA(13, 1)
-
-```{r}
-est.s.mle <- est.arma.wge(x, p = 13, q = 1)
+est.arma.2.1 = est.arma.wge(x, p = 2, q = 1)
 ```
 
 ```{r}
-est.s.mle$theta
+est.arma.2.1$theta
 ```
-
-
-#### White Noise Assessment
-
-The visual assessment of the ARMA(13, 1) on the residuals of the fit confirms that the residuals appear to be consistent with white noise.
-The Ljung-Box test fails to reject the null hypothesis, at K = 24 and K = 48, that the residuals are white noise.
-
-```{r}
-white_noise_eval(est.s.mle$res, 13, 1)
-```
-
 
 **OBSERVATIONS**
 
 * This clears a lot of confusion. **Even when fitting a stationary ARMA model, we get an estimated root of 0.9928 in the factor table which is very close to 1 (non stationary)**. Hence the confusion that we had before can be cleared now. The data most definitely is coming from a non stationary process. For the sake of completeness, we will continue modeling with this stationary model and see how well it performs.
 
-
-### Factored Form
-
-```{r}
-est.s.mle$avar
-```
-
-**(1-0.993$B$)(1-0.604$B$+0.888$B^2$)(1+1.794$B$+0.878$B^2$)(1+0.539$B$+0.841$B^2$)(1-1.424B+0.807$B^2$)(1-1.662$B$+0.742$B^2$)(1+1.155$B$+0.720$B^2$)($X_{t}$ + `r mean(x)`) = (1-0.882B) $a_{t}$  with $\sigma_{a}^2$ = `r est.s.mle$avar`**
-
-
-### Forecasting 
-
-```{r}
-phi = est.s.mle$phi
-theta = est.s.mle$theta
-```
-
-```{r}
-# Plot the forecasts
-f = fore.arma.wge(x, phi=phi, theta = theta,
-                  n.ahead = n.ahead, limits=TRUE, lastn = FALSE, plot = TRUE)
-```
 
 
 ## Non Stationary Model
@@ -174,10 +112,10 @@ Next we will evaluate this as a non stationary model.
 ### Model ID
 
 An overfit table should show the non-stationary characteristics.
-The overfit table with $p = 24$ has a root with absolute reciprocal of 0.9890, which is suggestive of a unit root.
+The overfit table with $p = 15$ has a root with absolute reciprocal of 0.9676, which is suggestive of a unit root.
 
 ```{r}
-vals <- est.ar.wge(x, p = 24, type = 'burg')
+vals = overfit(x, p = 15, type = 'burg')
 ```
 
 Because of the extended autocorrelations in the data, we will take the first difference and check the resultant data for stationarity.
@@ -195,106 +133,36 @@ tswgewrapped::check_stationarity(dif1)
 ```
 
 ```{r}
-aic5.wge(dif1, type = 'aic')
+aicbic(dif1, p = 0:5, q = 0:2, merge = TRUE, sort_by = 'bic', silent = TRUE)
 ```
 
-* AIC indicates that ARMA(1,1) is the best although our initial guess of MA(1) is not far behind.
-
+### MA(1) Parameter Estimation
 ```{r}
-aic5.wge(dif1, type = 'bic')
-```
-
-* With BIC, the order of the first 2 models is flipped. Now our initial guess of MA(1) takes 1st place.
-
-We will try both to see which is the better model
-
-
-### Parameter Estimation
-
-#### ARMA(1,1)
-```{r}
-est.ns.mle = est.arma.wge(dif1, p = 1, q = 1)
+est.arima.0.1.1.0 = est.arma.wge(dif1, p = 0, q = 1)
 ```
 
 
 ```{r}
-est.ns.mle$theta
-```
-
-* Theta is the dominant factor here. This is almost no impact of the AR side since the root is so far away from the unit circle.
-* **Hence, we should stick to our initial assessment of an MA(1) model.**
-
-#### MA(1)
-```{r}
-est.ns.mle = est.arma.wge(dif1, p = 0, q = 1)
+est.arima.0.1.1.0$theta
 ```
 
 
-```{r}
-est.ns.mle$theta
-```
+## Visualizing Model Comparison
 
-#### White Noise Assessment
-
-An assessment of the MA(1) residuals rejects the residuals being consistent with white noise.
-We will fit a higher order model to the differenced data.
 
 ```{r}
-white_noise_eval(est.ns.mle$res, 0, 1)
-```
-
-#### Higher Order Fit
-
-BIC suggests an AR(11) and AIC suggests an ARMA(12, 1) of models with options up to ARMA(16, 5).
-We will continue with the smaller model AR(11).
-
-```{r}
-aicbic(dif1, p = 0:16, silent = T)
-```
-
-#### AR(11)
-
-```{r}
-est.ns.mle <- est.arma.wge(dif1, p = 11, q = 0)
-```
-
-#### White Noise Assessment
-
-The visual assessment of the AR(11) on the residuals of the fit confirms that the residuals appear to be consistent with white noise.
-The Ljung-Box test fails to reject the null hypothesis, at K = 24 and K = 48, that the residuals are white noise.
-
-```{r}
-white_noise_eval(est.ns.mle$res, 11, 0)
-```
-
-### Factored Form
-
-```{r}
-est.ns.mle$avar
-```
-
-**(1-0.6227$B$+0.8766$B^2$)(1+1.7743$B$+0.8617$B^2$)(1-1.5025$B$+0.8361$B^2$)(1+0.5210$B$+0.8091$B^2$)(1+1.0965$B$+0.6776$B^2$)(1-0.6025$B$)(1 - $B$)($X_{t}$ + `r mean(x)`) = $a_{t}$  with $\sigma_{a}^2$ = `r est.ns.mle$avar`**
-
-### Forecasting
-
-```{r}
-phi = est.ns.mle$phi
-theta = est.ns.mle$theta
-d = 1
-s = 0
-```
-
-```{r}
-# Plot the forecasts
-f = fore.aruma.wge(x, phi=phi, theta = theta, d = d, s = s,
-                  n.ahead = n.ahead, limits=TRUE, lastn = FALSE, plot = TRUE)
-```
-
-## Visualizing Results
-
-```{r}
-models = list("ARMA Model 1" = list(phi = est.s.mle$phi, theta = est.s.mle$theta, vara = est.s.mle$avar, sliding_ase = TRUE),
-              "ARIMA Model 1" = list(phi = est.ns.mle$phi, theta = est.ns.mle$theta, d = 1, s = 0, vara = est.ns.mle$avar, sliding_ase = TRUE)
+models = list("ARMA(2,1)" = list(phi = est.arma.2.1$phi,
+                                 theta = est.arma.2.1$theta,
+                                 vara = est.arma.2.1$avar,
+                                 res = est.arma.2.1$res,
+                                 sliding_ase = TRUE),
+              "ARIMA(0,1,1) s = 0" = list(phi = est.arima.0.1.1.0$phi,
+                                     theta = est.arima.0.1.1.0$theta,
+                                     d = 1,
+                                     s = 0,
+                                     vara = est.arima.0.1.1.0$avar,
+                                     res = est.arima.0.1.1.0$res,
+                                     sliding_ase = TRUE)
               )
 ```
 
@@ -304,19 +172,28 @@ mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
                                                        n.ahead = n.ahead, batch_size = batch_size)
 ```
 
+### Compare Residuals for White Noise
+```{r}
+table = mdl_compare$evaluate_residuals()
+print(table)
+```
+
+
+**It looks like the residuals are not white noise so we have not captured all the signal in the model. Maybe we can do better by looking at higher ordered models.**
+
 ### Compare Multiple Realizations
 
 ```{r fig.height=15, fig.width=10, message=FALSE, warning=FALSE}
-mdl_compare$plot_multiple_realizations(n.realizations = 6, seed = 100, plot = "realization", scales = 'fixed')
+mdl_compare$plot_multiple_realizations(n.realizations = 4, seed = 100, plot = "realization", scales = 'fixed')
 ```
 
 ```{r fig.height=6, message=FALSE, warning=FALSE}
-mdl_compare$plot_multiple_realizations(n.realizations = 6, seed = 100, plot = c("acf", "spectrum"), scales = 'fixed')
+mdl_compare$plot_multiple_realizations(n.realizations = 4, seed = 100, plot = c("acf", "spectrum"), scales = 'fixed')
 ```
 
 ### Compare Simple Forecasts
 ```{r fig.height=4, fig.width=12}
-mdl_compare$plot_simple_forecasts()
+mdl_compare$plot_simple_forecasts(lastn = FALSE, limits = FALSE)
 ```
 
 ### ASE values across Batches
@@ -341,7 +218,11 @@ mdl_compare$plot_histogram_ases()
 ### Forecasts across Batches
 
 ```{r, warning=FALSE, fig.height=4, fig.width=10}
-mdl_compare$plot_forecasts(only_sliding = TRUE)
+mdl_compare$plot_batch_forecasts(only_sliding = TRUE)
+```
+
+```{r, warning=FALSE, fig.height=4, fig.width=10}
+mdl_compare$plot_batch_ases(only_sliding = TRUE)
 ```
 
 ```{r}
@@ -349,7 +230,145 @@ forecasts = mdl_compare$get_tabular_metrics(ases = FALSE)
 print(forecasts)
 ```
 
-## Statistical Comparison
+### Statistical Comparison
+```{r}
+mdl_compare$statistical_compare()  
+```
+
+## Higher ordered Models
+
+### Stationary Model
+
+Since the ARMA(2, 1) does not appear to be sufficient to whiten the residuals, 
+a higher order model, ARMA(13, 1) was fit.
+The models suggested by BIC are not sufficient to whiten the residuals.
+
+```{r}
+aicbic(x, p = 0:16, silent = T, merge = TRUE, sort_by = 'aic')
+```
+
+#### ARMA(13, 1) Parameter Estimation
+
+```{r}
+est.arma.13.1 <- est.arma.wge(x, p = 13, q = 1)
+```
+
+```{r}
+est.arma.13.1$theta
+```
+
+#### Factored Form
+
+```{r}
+est.arma.13.1$avar
+```
+
+**(1-0.993$B$)(1-0.604$B$+0.888$B^2$)(1+1.794$B$+0.878$B^2$)(1+0.539$B$+0.841$B^2$)(1-1.424B+0.807$B^2$)(1-1.662$B$+0.742$B^2$)(1+1.155$B$+0.720$B^2$)($X_{t}$ + `r mean(x)`) = (1-0.882B) $a_{t}$  with $\sigma_{a}^2$ = `r est.arma.13.1$avar`**
+
+### Non Stationary Model
+
+BIC suggests an AR(11) and AIC suggests an ARMA(12, 1) of models with options up to ARMA(16, 5).
+We will continue with the smaller model AR(11).
+
+```{r}
+aicbic(dif1, p = 0:16, silent = T, merge = TRUE, sort_by = 'bic')
+```
+
+#### AR(11) Parameter Estimation
+
+```{r}
+est.arima.11.1.0.0 <- est.arma.wge(dif1, p = 11, q = 0)
+```
+
+#### Factored Form
+
+```{r}
+est.arima.11.1.0.0$avar
+```
+
+**(1-0.6227$B$+0.8766$B^2$)(1+1.7743$B$+0.8617$B^2$)(1-1.5025$B$+0.8361$B^2$)(1+0.5210$B$+0.8091$B^2$)(1+1.0965$B$+0.6776$B^2$)(1-0.6025$B$)(1 - $B$)($X_{t}$ + `r mean(x)`) = $a_{t}$  with $\sigma_{a}^2$ = `r est.arima.11.1.0.0$avar`**
+
+## Visualizing Model Comparison
+
+
+```{r}
+models = list("ARMA(13,1)" = list(phi = est.arma.13.1$phi,
+                                  theta = est.arma.13.1$theta,
+                                  vara = est.arma.13.1$avar,
+                                  res = est.arma.13.1$res,
+                                  sliding_ase = TRUE),
+              "ARIMA(11,1,0) s = 0" = list(phi = est.arima.11.1.0.0$phi,
+                                     theta = est.arima.11.1.0.0$theta,
+                                     d = 1,
+                                     s = 0,
+                                     vara = est.arima.11.1.0.0$avar,
+                                     res = est.arima.11.1.0.0$res,
+                                     sliding_ase = TRUE)
+              )
+```
+
+
+```{r}
+mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
+                                                       n.ahead = n.ahead, batch_size = batch_size)
+```
+
+### Compare Residuals for White Noise
+```{r}
+table = mdl_compare$evaluate_residuals()
+print(table)
+```
+
+### Compare Multiple Realizations
+
+```{r fig.height=15, fig.width=10, message=FALSE, warning=FALSE}
+mdl_compare$plot_multiple_realizations(n.realizations = 4, seed = 100, plot = "realization", scales = 'fixed')
+```
+
+```{r fig.height=6, message=FALSE, warning=FALSE}
+mdl_compare$plot_multiple_realizations(n.realizations = 4, seed = 100, plot = c("acf", "spectrum"), scales = 'fixed')
+```
+
+### Compare Simple Forecasts
+```{r fig.height=4, fig.width=12}
+mdl_compare$plot_simple_forecasts(lastn = FALSE, limits = FALSE)
+```
+
+### ASE values across Batches
+```{r message=FALSE, warning=FALSE}
+ASEs = mdl_compare$get_tabular_metrics(ases = TRUE)
+print(ASEs)
+```
+
+```{r}
+ASEs %>% 
+  group_by(Model) %>% 
+  summarise(ASE_mean = mean(ASE),
+            ASE_median = median(ASE),
+            ASE_sd = sd(ASE),
+            num_batches = n())
+```
+
+```{r message=FALSE, warning=FALSE}
+mdl_compare$plot_histogram_ases()
+```
+
+### Forecasts across Batches
+
+```{r, warning=FALSE, fig.height=4, fig.width=10}
+mdl_compare$plot_batch_forecasts(only_sliding = TRUE)
+```
+
+```{r, warning=FALSE, fig.height=4, fig.width=10}
+mdl_compare$plot_batch_ases(only_sliding = TRUE)
+```
+
+```{r}
+forecasts = mdl_compare$get_tabular_metrics(ases = FALSE)
+print(forecasts)
+```
+
+### Statistical Comparison
 ```{r}
 mdl_compare$statistical_compare()  
 ```
