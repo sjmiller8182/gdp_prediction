@@ -183,11 +183,11 @@ print(table)
 
 ### Compare Multiple Realizations
 
-```{r fig.height=15, fig.width=10, message=FALSE, warning=FALSE}
+```{r fig.height=8, fig.width=8, message=FALSE, warning=FALSE}
 mdl_compare$plot_multiple_realizations(n.realizations = 4, seed = 100, plot = "realization", scales = 'fixed')
 ```
 
-```{r fig.height=6, message=FALSE, warning=FALSE}
+```{r fig.height=4, message=FALSE, warning=FALSE}
 mdl_compare$plot_multiple_realizations(n.realizations = 4, seed = 100, plot = c("acf", "spectrum"), scales = 'fixed')
 ```
 
@@ -321,11 +321,11 @@ print(table)
 
 ### Compare Multiple Realizations
 
-```{r fig.height=15, fig.width=10, message=FALSE, warning=FALSE}
+```{r fig.height=8, fig.width=8, message=FALSE, warning=FALSE}
 mdl_compare$plot_multiple_realizations(n.realizations = 4, seed = 100, plot = "realization", scales = 'fixed')
 ```
 
-```{r fig.height=6, message=FALSE, warning=FALSE}
+```{r fig.height=4, message=FALSE, warning=FALSE}
 mdl_compare$plot_multiple_realizations(n.realizations = 4, seed = 100, plot = c("acf", "spectrum"), scales = 'fixed')
 ```
 
