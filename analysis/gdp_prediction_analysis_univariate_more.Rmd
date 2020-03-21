@@ -1,0 +1,487 @@
+---
+title: "GDP Prediction"
+author: "Nikhil Gupta"
+date: "`r Sys.time()`"
+output:
+  github_document: 
+    toc: yes
+    toc_depth: 6
+  word_document:
+    toc: yes
+    toc_depth: '6'
+  html_document:
+    toc: yes
+    toc_depth: 6
+    toc_float: yes
+always_allow_html: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Setup
+```{r message=FALSE, warning=FALSE}
+library(tswge)
+library(tswgewrapped)
+library(tidyverse)
+library(ggplot2)
+library(tseries)
+```
+
+```{r}
+data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")
+data %>% glimpse()
+```
+
+```{r}
+x = data$gdp_change
+```
+
+```{r}
+px = plotts.sample.wge(x)
+```
+
+## Stationarity
+
+```{r}
+tswgewrapped::check_stationarity(x)
+```
+
+### Condition 1
+
+* Looks like there is a slight trend in the data with the mean moving down over time. This would be expected. As a country is growing, its GDP is expected to be high. As it becomes a more developed economy, the GDP settles at a lower but steadier value.
+* The ACF plots shows extended autocorrelations although there is also a hint of exponentially decaying behavior. Hence, this trend (wanderig behavior) could be a result of a stationary AR process with positive phi values or it could be a result of a non-stationaty ARIMA like process. 
+* **In summary, the mean is changing over time (wandering behavior) and based on the ACFs, this could be coming from either a stationary or a non stationary process.**
+
+
+### Condition 2
+
+* Since we have only 1 realization, it is hard to say whether the varaince is different at different time points. 
+* However we can make some important observations from this realization and domain knowledge. We see that in the initial part of the graph there is more volatility in the GDP numbers compared to the second half of the graph. This is again expected based on domain knowledge. Just as a developing economy has a higher GDP change value per quarter in general, this comes with a higher volatility. As an economy becomes more developed, not only does the GDP settle to a lower value in general but also the volatility decreases as well.
+* Given the above observations, there may be some hints that condition 2 has not been met
+
+
+### Condition 3
+
+* Both the first half and second half ACFs show a damped exponential behavior for the first few lags although the second half ACFs take longer to die down. Also, the 1st half ACF shows higher values at lags of 9, 10 and 11 compared to the second half. It is also interesting to see that neither the firs half nor the second half ACF matches the full data ACF. There is enough evience here to indicate that the data is not stationary.
+
+
+### Conclusion
+
+* Given the above analysis, there is a good chance that this data is not coming from a stationary process, although there were some hints (when looking at the mean) that it could have resulted from a stationary AR process. In order to completely eliminate the possibility that this may be coming from a stationary process, we will conduct an initial analysis with a stationary model.
+
+## Stationary Model
+
+### Setup
+
+```{r}
+n.ahead = 2
+batch_size = 50 ## 12 years to predict the next 2 quarters
+```
+
+### Model ID
+
+```{r}
+aic5.wge(x)
+```
+
+### Parameter Estimation
+```{r}
+est.s.mle = est.arma.wge(x, p = 2, q = 1)
+```
+
+```{r}
+est.s.mle$theta
+```
+
+
+
+**OBSERVATIONS**
+
+* This clears a lot of confusion. **Even when fitting a stationary ARMA model, we get an estimate of phi = 0.9917 which is very close to 1 (non stationary)**. Hence the confusion that we had before can be cleared now. The data most definitely is coming from a non stationary process. For the sake of completeness, we will continue modeling with this stationary model and see how well it performs.
+
+
+### Factored Form
+
+```{r}
+est.s.mle$avar
+```
+
+**(1 - 0.9917B)(1 - 0.2257B)$X_{t}$ = (1 - 0.9128)$a_{t}$  with $\sigma_{a}^2$ = `r est.s.mle$avar`**
+
+
+### Forecasting 
+
+```{r}
+phi = est.s.mle$phi
+theta = est.s.mle$theta
+```
+
+```{r}
+# Plot the forecasts
+f = fore.arma.wge(x, phi=phi, theta = theta,
+                  n.ahead = n.ahead, limits=TRUE, lastn = FALSE, plot = TRUE)
+```
+
+
+## Non Stationary Model
+
+Next we will evaluate this as a non stationary model.
+
+Because of the extended autocorrelations in the data, we will take the first difference and check the resultant data for stationarity
+
+### Model ID
+```{r}
+dif1 = artrans.wge(x, phi.tr = 1)
+px = plotts.sample.wge(dif1)
+```
+
+* ACF is indicatove of a MA(1) model with positive theta since most ACFs die down after lag = 1 and there is a dip in the Spectral Density at f = 0.
+
+
+```{r}
+tswgewrapped::check_stationarity(dif1)
+```
+
+```{r}
+aic5.wge(dif1, type = 'aic')
+```
+
+* AIC indicates that ARMA(1,1) is the best although our initial guess of MA(1) is not far behind.
+
+```{r}
+aic5.wge(dif1, type = 'bic')
+```
+
+* With BIC, the order of the first 2 models is flipped. Now our initial guess of MA(1) takes 1st place.
+
+We will try both to see which is the better model
+
+
+### Parameter Estimation
+
+#### ARMA(1,1)
+```{r}
+est.ns.mle = est.arma.wge(dif1, p = 1, q = 1)
+```
+
+
+```{r}
+est.ns.mle$theta
+```
+
+* Theta is the dominant factor here. This is almost no impact of the AR side since the root is so far away from the unit circle.
+* **Hence, we should stick to our initial assessment of an MA(1) model.**
+
+#### MA(1)
+```{r}
+est.ns.mle = est.arma.wge(dif1, p = 0, q = 1)
+```
+
+
+```{r}
+est.ns.mle$theta
+```
+
+
+### Factored Form
+
+```{r}
+est.ns.mle$avar
+```
+
+**(1 - B)$X_{t}$ = (1 - 0.8881)$a_{t}$  with $\sigma_{a}^2$ = `r est.ns.mle$avar`**
+
+
+### Forecasting
+
+```{r}
+phi = est.ns.mle$phi
+theta = est.ns.mle$theta
+d = 1
+s = 0
+```
+
+```{r}
+# Plot the forecasts
+f = fore.aruma.wge(x, phi=phi, theta = theta, d = d, s = s,
+                  n.ahead = n.ahead, limits=TRUE, lastn = FALSE, plot = TRUE)
+```
+
+## Visualizing Results
+
+```{r}
+models = list("ARMA Model 1" = list(phi = est.s.mle$phi, theta = est.s.mle$theta, sliding_ase = TRUE),
+              "ARIMA Model 1" = list(phi = est.ns.mle$phi, theta = est.ns.mle$theta, d = 1, s = 0, sliding_ase = TRUE)
+              )
+```
+
+
+```{r}
+mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
+                                                       n.ahead = n.ahead, batch_size = batch_size)
+```
+
+### ASE values across Batches
+```{r message=FALSE, warning=FALSE}
+ASEs = mdl_compare$get_tabular_metrics(ases = TRUE)
+print(ASEs)
+```
+
+```{r}
+ASEs %>% 
+  group_by(Model) %>% 
+  summarise(ASE_mean = mean(ASE),
+            ASE_median = median(ASE),
+            ASE_sd = sd(ASE),
+            num_batches = n())
+```
+
+```{r message=FALSE, warning=FALSE}
+mdl_compare$plot_histogram_ases()
+```
+
+### Forecasts across Batches
+
+```{r, warning=FALSE, fig.height=4, fig.width=10}
+mdl_compare$plot_forecasts(only_sliding = TRUE)
+```
+
+```{r}
+forecasts = mdl_compare$get_tabular_metrics(ases = FALSE)
+print(forecasts)
+```
+
+## Statistical Comparison
+```{r}
+mdl_compare$statistical_compare()  
+```
+
+
+**CONCLUSION**
+
+* It looks like both model performs pooprly in predicting severe downturns (~ time point 80, 120, 150) and upturns (~ time points 48, 127, 172).
+* We may need to inclue exogenous variables into our model that are more indicative of these downturns and upturns in order to improve the model performance.
+
+
+
+
+
+
+
+```{r}
+adf.test(data$gdp_change, alternative = 'stationary')
+```
+
+
+## Dicky Fuller Test
+
+The Dicky Fuller test rejects the presence of a unit root 
+
+```{r}
+adf.test(data$gdp_change, alternative = 'stationary')
+```
+
+
+
+
+
+The Ljung test rejects the null hypothesis on the residuals of both models
+
+
+```{r}
+ljung_box(est.ns.mle$res, 0, 1)
+cat('\n')
+ljung_box(est.s.mle$res, 2, 1)
+```
+
+
+
+
+```{r}
+aicbic(dif1, p = 0:16)
+```
+
+
+## Try some higher order models
+
+```{r}
+est.11.0 <- est.arma.wge(dif1, p = 11, q = 0)
+ljung_box(est.11.0$res, 11, 0)
+cat('\n\n')
+est.8.1 <- est.arma.wge(dif1, p = 8, q = 1)
+ljung_box(est.8.1$res, 8, 1)
+cat('\n\n')
+est.12.1 <- est.arma.wge(dif1, p = 12, q = 1)
+ljung_box(est.12.1$res, 12, 1)
+```
+
+
+```{r, fig.height=7}
+models = list("ARMA Model 1" = list(phi = est.s.mle$phi, theta = est.s.mle$theta, vara = est.s.mle$avar, sliding_ase = TRUE),
+              "ARIMA Model 1" = list(phi = est.ns.mle$phi, theta = est.ns.mle$theta, d = 1, s = 0, vara = est.ns.mle$avar, sliding_ase = TRUE),
+              
+              "ARIMA 8 1 1" = list(phi = est.8.1$phi, theta = est.8.1$theta, d = 1, vara = est.8.1$avar, sliding_ase = TRUE),
+              "ARIMA 11 1 0" = list(phi = est.11.0$phi, theta = est.11.0$theta, d = 1, vara = est.11.0$avar, sliding_ase = TRUE),
+              "ARIMA 12 1 1" = list(phi = est.12.1$phi, theta = est.12.1$theta, d = 1, vara = est.12.1$avar, sliding_ase = TRUE)
+              )
+
+mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
+                                                       n.ahead = n.ahead, batch_size = batch_size)
+
+mdl_compare$plot_forecasts(only_sliding = TRUE)
+```
+
+
+
+```{r}
+mdl_compare$plot_histogram_ases()
+mdl_compare$statistical_compare()  
+```
+
+### Realizations from Models
+
+```{r}
+sim <- gen.arima.wge(195, est.11.0$phi, d = 1, vara = est.11.0$avar) + mean(data$gdp_change)
+plotts.sample.wge(sim)
+```
+
+
+```{r}
+sim <- gen.arima.wge(195, est.8.1$phi, theta = est.8.1$theta, d = 1, vara = est.8.1$avar) + mean(data$gdp_change)
+plotts.sample.wge(sim)
+```
+
+
+
+```{r}
+sim <- gen.arima.wge(195, est.12.1$phi, theta = est.12.1$theta, d = 1, vara = est.12.1$avar) + mean(data$gdp_change)
+plotts.sample.wge(sim)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Log Data
+
+
+```{r}
+log_gdp <- log(data$gdp_change +10)
+plotts.sample.wge(log_gdp)
+aicbic(log_gdp, p = 0:16)
+```
+
+
+```{r}
+est.2.1 <- est.arma.wge(log_gdp, p = 2, q = 1)
+plotts.sample.wge(est.2.1$res)
+ljung_box(est.2.1$res, 2, 1)
+
+est.3.1 <- est.arma.wge(log_gdp, p = 3, q = 1)
+plotts.sample.wge(est.3.1$res)
+ljung_box(est.3.1$res, 3, 1)
+```
+
+
+```{r}
+models_log = list("ARMA Model 1" = list(phi = est.2.1$phi, theta = est.2.1$theta, vara = est.2.1$avar, sliding_ase = TRUE),
+                  "ARMA Model 2" = list(phi = est.3.1$phi, theta = est.3.1$theta, vara = est.3.1$avar, sliding_ase = TRUE)
+                  )
+
+mdl_compare_log = tswgewrapped::ModelCompareUnivariate$new(x = log_gdp, mdl_list = models_log,
+                                                       n.ahead = n.ahead, batch_size = batch_size)
+
+mdl_compare_log$plot_forecasts(only_sliding = TRUE)
+```
+
+
+
+
+```{r}
+mdl_compare_log$plot_histogram_ases()
+mdl_compare_log$statistical_compare()  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
