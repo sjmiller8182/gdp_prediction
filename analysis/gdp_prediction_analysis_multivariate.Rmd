@@ -1,0 +1,257 @@
+---
+title: "GDP Prediction"
+author: "Nikhil Gupta"
+date: "`r Sys.time()`"
+output:
+  github_document: 
+    toc: yes
+    toc_depth: 6
+  word_document:
+    toc: yes
+    toc_depth: '6'
+  html_document:
+    toc: yes
+    toc_depth: 6
+    toc_float: yes
+always_allow_html: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Setup
+```{r message=FALSE, warning=FALSE}
+library(tswge)
+library(tswgewrapped)
+library(tidyverse)
+library(ggplot2)
+library(tseries)
+library(RColorBrewer)
+```
+
+```{r}
+data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")
+data %>% glimpse()
+```
+
+```{r}
+data = data %>% dplyr::select(-date, fedintrate)
+```
+
+# CCF Analysis
+
+```{r}
+lag.max = 12
+```
+
+```{r}
+
+var_interest = 'gdp_change'
+
+for (name in colnames(data)){
+  # By convention, the X2 variable comes first
+  c = ccf(data[name], data[var_interest], lag.max = lag.max)
+  index = which(abs(c$acf[,1,1]) == max(abs(c$acf[,1,1])))
+  max_ccf = c$lag[,1,1][index] 
+  cat(paste("\nFor variable: ", name, " , max cross-correlation is at lag: ", max_ccf, sep = ""))
+}
+
+
+```
+
+* TODO: Add some notes here
+
+* We will use lag.max = 12 in VARselect to give it enough room to pick the best model.
+
+
+# Usig tswgewrapped
+
+## Multivariate Compare Object
+```{r}
+
+lag.max = 12 # Increased since AIC is hitting its limit
+
+models = list(
+  # "VARS AIC Both A" = list(type = "VAR", select = "aic", trend_type = "both", lag.max = lag.max, sliding_ase = FALSE),
+  # "VARS BIC Both A" = list(type = "VAR", select = "bic", trend_type = "both", lag.max = lag.max, sliding_ase = FALSE),
+  "VARS AIC Both B" = list(type = "VAR", select = "aic", trend_type = "both", lag.max = lag.max, sliding_ase = TRUE),
+  "VARS AIC Trend B" = list(type = "VAR", select = "aic", trend_type = "trend", lag.max = lag.max, sliding_ase = TRUE),
+  "VARS AIC Const B" = list(type = "VAR", select = "aic", trend_type = "const", lag.max = lag.max, sliding_ase = TRUE),
+  "VARS AIC None B" = list(type = "VAR", select = "aic", trend_type = "none", lag.max = lag.max, sliding_ase = TRUE),
+  "VARS BIC Both B" = list(type = "VAR", select = "bic", trend_type = "both", lag.max = lag.max, sliding_ase = TRUE),
+  "VARS BIC Trend B" = list(type = "VAR", select = "bic", trend_type = "trend", lag.max = lag.max, sliding_ase = TRUE),
+  "VARS BIC Const B" = list(type = "VAR", select = "bic", trend_type = "const", lag.max = lag.max, sliding_ase = TRUE),
+  "VARS BIC None B" = list(type = "VAR", select = "bic", trend_type = "none", lag.max = lag.max, sliding_ase = TRUE)
+)
+```
+
+```{r}
+n.ahead = 2
+batch_size = 50 ## 12 years to predict the next 2 quarters
+```
+
+
+```{r}
+mdl_compare = ModelCompareMultivariateVAR$new(data = data, mdl_list = models, var_interest = var_interest,
+                                              n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
+```
+
+### AIC BIC Full Data
+```{r}
+mdl_compare$get_xIC() 
+```
+
+### Tabular Metrics
+
+```{r}
+ASEs = mdl_compare$get_tabular_metrics() 
+
+ASEs %>% 
+  group_by(Model) %>% 
+  summarise(ASE_mean = mean(ASE),
+            ASE_median = median(ASE),
+            ASE_sd = sd(ASE),
+            num_batches = n())
+
+```
+
+
+```{r}
+mdl_compare$get_tabular_metrics(ases = FALSE) %>% 
+  na.omit()
+```
+
+### Remove unwanted models
+```{r}
+mdls_to_remove = c("VARS AIC Both B", "VARS AIC Const B", "VARS AIC None B", "VARS AIC Trend B")
+mdl_compare$remove_models(mdl_names = mdls_to_remove)
+```
+
+
+### Simple Forecasts
+```{r fig.width=10}
+mdl_compare$plot_simple_forecasts(lastn = TRUE, limits = TRUE)
+mdl_compare$plot_simple_forecasts(lastn = FALSE, limits = TRUE)
+```
+
+
+### Batch Forecasts
+```{r fig.width=10}
+mdl_compare$plot_batch_forecasts(only_sliding = FALSE)
+```
+
+### Batch ASEs
+```{r fig.width=10}
+mdl_compare$plot_batch_ases(only_sliding = FALSE)
+```
+
+### ASE Histograms
+```{r}
+mdl_compare$plot_histogram_ases()  # Same function as univariate
+```
+
+
+### Statistical Compare
+```{r}
+mdl_compare$statistical_compare() 
+```
+
+# Manual Method
+
+```{r}
+n = nrow(data)
+train_data = data %>% dplyr::filter(row_number() <= (n - n.ahead))
+test_data = data %>% dplyr::filter(row_number() > (n - n.ahead))
+```
+
+
+## VARselect
+```{r}
+library(vars)
+# VARselect will select the best K for this VAR model
+# Looks at the cross correlation structure (ccf) to figure this out 
+vselect = VARselect(data, lag.max = lag.max, type = "both", season = NULL, exogen = NULL)
+vselect # Gives AIC values for various K values
+
+k = vselect$selection[["AIC(n)"]]  # BIC = SC(n)
+k
+```
+
+AIC picks a VAR(10) model
+
+## VAR Model
+
+```{r}
+varfit = VAR(train_data, p=k, type="both")
+stats::AIC(varfit)
+print(summary(varfit)$varresult[[var_interest]])
+```
+
+## Predictions
+
+```{r}
+preds = stats::predict(varfit, n.ahead=n.ahead)
+
+results = preds$fcst[[var_interest]] %>% 
+  dplyr::as_tibble() %>% 
+  dplyr::mutate(Time = seq(n-n.ahead+1,n,1)) 
+
+results
+
+```
+
+### ASE
+
+```{r}
+ASE_data = data %>% 
+  dplyr::mutate(Time = dplyr::row_number()) %>% 
+  dplyr::full_join(results, by = "Time") %>% 
+  na.omit()
+
+ASE_data
+```
+
+```{r}
+ASE = mean((ASE_data[[var_interest]] - ASE_data$fcst)^2, na.rm = TRUE)
+ASE
+```
+
+
+### Plots
+
+```{r}
+results = results %>% 
+  dplyr::mutate(!!var_interest := fcst) %>% 
+  dplyr::mutate(Model = 'VAR Model') %>% 
+  dplyr::select(Model, Time, !!var_interest)
+
+combined_data = data %>% 
+  dplyr::mutate(Time = dplyr::row_number()) %>% 
+  mutate(Model = 'Realization') %>% 
+  dplyr::select(Model, Time, !!var_interest) %>% 
+  bind_rows(results) %>% 
+  mutate(Model = as.factor(Model))
+
+combined_data
+```
+
+
+```{r fig.width=10}
+p = ggplot2::ggplot() + 
+  ggplot2::geom_line(data = combined_data, mapping = ggplot2::aes_string(x = "Time", y = var_interest, color = "Model"))
+
+print(p)
+
+plot(seq(1,n,1), data[[var_interest]], type = "b")
+points(seq(n-n.ahead+1,n,1), preds$fcst[[var_interest]][,'fcst'], type = "b", pch = 15)
+```
+
+
+```{r fig.width=10}
+fanchart(preds, colors = brewer.pal(n = 8, name = "Blues"), names = var_interest) 
+```
+
+
