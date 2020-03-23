@@ -168,7 +168,7 @@ models = list("ARMA(2,1)" = list(phi = est.arma.2.1$phi,
 
 
 ```{r}
-mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
+mdl_compare = tswgewrapped::ModelCompareUnivariate$new(data = x, mdl_list = models,
                                                        n.ahead = n.ahead, batch_size = batch_size)
 ```
 
@@ -309,7 +309,7 @@ models = list("ARMA(13,1)" = list(phi = est.arma.13.1$phi,
 
 
 ```{r}
-mdl_compare = tswgewrapped::ModelCompareUnivariate$new(x = x, mdl_list = models,
+mdl_compare = tswgewrapped::ModelCompareUnivariate$new(data = x, mdl_list = models,
                                                        n.ahead = n.ahead, batch_size = batch_size)
 ```
 
