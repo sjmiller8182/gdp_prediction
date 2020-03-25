@@ -17,10 +17,11 @@ library(reshape)
 
 # Ideas to consider
 
-1. All variables given to a VAR model must be stationary. But some of our variables are non stationary. That might be an issue. Maybe consider converting some of them to % changes to make them more stationary.
-2. We may be missing some important columns based on CCF analysis below. Add them to see if forecasts improve.
-3. For the MLR model, we need to predict the independent variables for the next 2 time points rather than using the actual values from the test data (since these will not be available while forecasting). The VAR model assumes these are not available and just uses data upto t0 to make the forecasts so that is why those ASE values may be higher. Just a thought.
-4. Maybe add seasonality of 6 in the models based on overfit tables?
+1. Add scatterplots to check for multicolinearity.
+2. All variables given to a VAR model must be stationary. But some of our variables are non stationary. That might be an issue. Maybe consider converting some of them to % changes to make them more stationary.
+3. We may be missing some important columns based on CCF analysis below. Add them to see if forecasts improve.
+4. For the MLR model, we need to predict the independent variables for the next 2 time points rather than using the actual values from the test data (since these will not be available while forecasting). The VAR model assumes these are not available and just uses data upto t0 to make the forecasts so that is why those ASE values may be higher. Just a thought.
+5. Maybe add seasonality of 6 in the models based on overfit tables?
 
 
 ```{r}
