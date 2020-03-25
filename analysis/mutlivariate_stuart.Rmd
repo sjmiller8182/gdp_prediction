@@ -13,19 +13,94 @@ library(tseries)
 library(vars)
 ```
 
+
+# Ideas to consider
+
+1. All variables given to a VAR model must be stationary. But some of our variables are non stationary. That might be an issue.
+2. We may be missing some important columns based on CCF analysis below. Add them to see if forecasts improve.
+3. For the MLR model, we need to predict the independent variables for the next 2 time points rather than using the actual values from the test data (since these will not be available while forecasting). The VAR model assumes these are not available and just uses data upto t0 to make the forecasts so that is why those ASE values may be higher. Just a thought.
+4. Maybe add seasonality of 6 in the models based on overfit tables?
+
+
 ```{r}
 data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")
 data %>% glimpse()
 ```
 
+# Checking for seasonality
+```{r}
+px = plotts.sample.wge(data$gdp_change)
+```
 
-Only keep unrate, nfjobs, treas10yr, fedintrate, personincomechg based on previous multivariate EDA
+```{r}
+factor.wge.season(6)
+e = est.ar.wge(data$gdp_change, p = 6, type = 'burg')
+e = est.ar.wge(data$gdp_change, p = 8, type = 'burg')
+```
+
+* There may be seasonality of 6 which could be included in the VAR and MLR models
+
+# Plot all data
+```{r fig.width=10}
+df.m = reshape::melt(data %>% dplyr::select(-date) %>% dplyr::mutate(time = row_number()), id.vars = "time")
+ggplot(df.m) + 
+  facet_wrap(variable ~ ., ncol = 3, scales = 'free_y') + 
+  geom_line(aes(x = time, y = value, colour = variable))
+
+```
+
+* Some of the variables are not stationary. This may be an issue for some of the models like VAR
+
+# CCF Analysis
+```{r}
+
+var_interest = 'gdp_change'
+lag.max = 12
+
+results = tribble(~variable, ~max_ccf_index, ~max_ccf_value)
+for (name in colnames(data %>% dplyr::select(-date))){
+  if (name != var_interest){
+    # By convention, the X2 variable comes first
+    c = ccf(data[name], data[var_interest], lag.max = lag.max, plot = FALSE)
+    plot(c, main = paste("\nVariable: ", name, " , max cross-correlation @ at lag: ", max_ccf, sep = ""))
+    index = which(abs(c$acf[,1,1]) == max(abs(c$acf[,1,1])))
+    max_ccf_index = c$lag[,1,1][index] 
+    max_ccf_value = c$acf[,1,1][index]
+    
+    results = results %>% 
+      dplyr::add_row(variable = name, max_ccf_index = max_ccf_index, max_ccf_value = max_ccf_value)
+    cat(paste("\nFor variable: ", name, " , max cross-correlation is at lag: ", max_ccf_index, sep = ""))
+  }
+}
+
+results %>% 
+  dplyr::mutate(max_ccf_index_adjusted = ifelse(max_ccf_index > 0, 0, max_ccf_index)) %>% 
+  dplyr::arrange(desc(abs(max_ccf_value)))
+
+```
 
 
+# Subset Data
+
+* Only keep unrate, nfjobs, treas10yr, fedintrate, personincomechg based on previous multivariate EDA
 
 ```{r}
 dat <- data %>% dplyr::select(c(gdp_change, unrate, nfjobs, treas10yr, fedintrate, personincomechg))
+```
 
+## Plot Subset Data
+
+```{r fig.width=10}
+df.m = reshape::melt(dat %>% dplyr::mutate(time = row_number()), id.vars = "time")
+ggplot(df.m) + 
+  facet_wrap(variable ~ ., ncol = 3, scales = 'free_y') + 
+  geom_line(aes(x = time, y = value, colour = variable))
+
+```
+
+# MLR Model with Correlated Errors
+
+```{r}
 end <- 195
 shift <- 2
 
@@ -47,7 +122,7 @@ points(seq(end - shift + 1, 195), preds.trend$fcst$gdp_change[ , 1], type = 'b',
 ```
 
 
-
+# Univariate Model
 ```{r}
 est <- est.arma.wge(dat.train$gdp_change, 13, 1)
 preds <- fore.arma.wge(dat.train$gdp_change, est$phi, est$theta, n.ahead = dim(dat.test)[1], plot = F)
@@ -59,14 +134,20 @@ points(seq(end - shift + 1, 195), dat.test$gdp_change)
 points(seq(end - shift + 1, 195), preds$f, type = 'b', pch = 15)
 ```
 
-
+# VAR Model
 ```{r}
 # fit on the data before the prediction length
 ksfit <- lm(gdp_change ~ unrate + nfjobs + treas10yr + 
               fedintrate + personincomechg, data = dat.train)
+
+# Evaluate the residuals for stationarity
+px = tswge::plotts.sample.wge(ksfit$residuals)
+# Looks to be stationary, we can model this using aic.wge
+
 aic.wge(ksfit$residuals, 0:15, q = 0)
 fit <- arima(dat.train$gdp_change, order = c(12, 0, 0), xreg = dat.train[ , 2:6])
 AIC(fit)
+
 # predict on the last 5 values
 preds <- predict(fit, n.ahead = dim(dat.test)[1], newxreg = dat.test[ , 2:6])
 
