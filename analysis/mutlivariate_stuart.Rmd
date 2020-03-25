@@ -11,6 +11,7 @@ library(tidyverse)
 library(ggplot2)
 library(tseries)
 library(vars)
+library(reshape)
 ```
 
 
@@ -86,6 +87,7 @@ results %>%
 
 ```{r}
 dat <- data %>% dplyr::select(c(gdp_change, unrate, nfjobs, treas10yr, fedintrate, personincomechg))
+dat <- data %>% dplyr::select(c(-date, -cpi))
 ```
 
 ## Plot Subset Data
@@ -98,7 +100,7 @@ ggplot(df.m) +
 
 ```
 
-# MLR Model with Correlated Errors
+# VAR Model
 
 ```{r}
 end <- 195
@@ -107,8 +109,8 @@ shift <- 2
 dat.train <- dat[1:(end - shift), ]
 dat.test <- dat[ (end - shift + 1)  :195, ]
 
-VARselect(dat, lag.max = 15, type = "both")
-lsfit=VAR(dat,p=12,type="both")
+VARselect(dat, lag.max = 13, type = "both")
+lsfit=VAR(dat,p=7,type="both")
 summary(lsfit)
 AIC(lsfit)
 
@@ -123,6 +125,7 @@ points(seq(end - shift + 1, 195), preds.trend$fcst$gdp_change[ , 1], type = 'b',
 
 
 # Univariate Model
+
 ```{r}
 est <- est.arma.wge(dat.train$gdp_change, 13, 1)
 preds <- fore.arma.wge(dat.train$gdp_change, est$phi, est$theta, n.ahead = dim(dat.test)[1], plot = F)
@@ -134,7 +137,8 @@ points(seq(end - shift + 1, 195), dat.test$gdp_change)
 points(seq(end - shift + 1, 195), preds$f, type = 'b', pch = 15)
 ```
 
-# VAR Model
+# MLR Model with Correlated Errors
+
 ```{r}
 # fit on the data before the prediction length
 ksfit <- lm(gdp_change ~ unrate + nfjobs + treas10yr + 
