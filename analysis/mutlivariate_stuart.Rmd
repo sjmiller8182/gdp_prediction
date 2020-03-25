@@ -1,0 +1,126 @@
+---
+title: "R Notebook"
+output: github_notebook
+---
+
+## Setup
+```{r message=FALSE, warning=FALSE}
+library(tswge)
+library(tswgewrapped)
+library(tidyverse)
+library(ggplot2)
+library(tseries)
+library(vars)
+```
+
+```{r}
+data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")
+data %>% glimpse()
+```
+
+
+Only keep unrate, nfjobs, treas10yr, fedintrate, personincomechg based on previous multivariate EDA
+
+
+
+```{r}
+dat <- data %>% dplyr::select(c(gdp_change, unrate, nfjobs, treas10yr, fedintrate, personincomechg))
+
+end <- 195
+shift <- 2
+
+dat.train <- dat[1:(end - shift), ]
+dat.test <- dat[ (end - shift + 1)  :195, ]
+
+VARselect(dat, lag.max = 15, type = "both")
+lsfit=VAR(dat,p=12,type="both")
+summary(lsfit)
+AIC(lsfit)
+
+preds.trend <- predict(lsfit, n.ahead = dim(dat.test)[1])
+
+mean( (dat.test$gdp_change - preds.trend$fcst$gdp_change[, 1])^2 )
+
+plot(seq_along(dat.train$gdp_change), dat.train$gdp_change, xlim = c(170, 200))
+points(seq(end - shift + 1, 195), dat.test$gdp_change)
+points(seq(end - shift + 1, 195), preds.trend$fcst$gdp_change[ , 1], type = 'b', pch = 15)
+```
+
+
+
+```{r}
+est <- est.arma.wge(dat.train$gdp_change, 13, 1)
+preds <- fore.arma.wge(dat.train$gdp_change, est$phi, est$theta, n.ahead = dim(dat.test)[1], plot = F)
+
+mean( (dat.test$gdp_change - preds$f)^2 )
+
+plot(seq_along(dat.train$gdp_change), dat.train$gdp_change, xlim = c(170, 200))
+points(seq(end - shift + 1, 195), dat.test$gdp_change)
+points(seq(end - shift + 1, 195), preds$f, type = 'b', pch = 15)
+```
+
+
+```{r}
+# fit on the data before the prediction length
+ksfit <- lm(gdp_change ~ unrate + nfjobs + treas10yr + 
+              fedintrate + personincomechg, data = dat.train)
+aic.wge(ksfit$residuals, 0:15, q = 0)
+fit <- arima(dat.train$gdp_change, order = c(12, 0, 0), xreg = dat.train[ , 2:6])
+AIC(fit)
+# predict on the last 5 values
+preds <- predict(fit, n.ahead = dim(dat.test)[1], newxreg = dat.test[ , 2:6])
+
+# show the predictions
+preds$pred
+
+mean( (dat.test$gdp_change - preds$pred)^2 )
+
+plot(seq_along(dat.train$gdp_change), dat.train$gdp_change, xlim = c(170, 200))
+points(seq(end - shift + 1, 195), dat.test$gdp_change)
+points(seq(end - shift + 1, 195), preds$pred, type = 'b', pch = 15)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
