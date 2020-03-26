@@ -26,10 +26,14 @@ plot.cross.lags <- function(data, response, explanatory, max.lags, start.lag = 1
     corr[i] <- cor(data[1:(size - i), response],
                    data[(i + 1):size, explanatory])
     
+    # create lagged dataset
+    temp.frame <- data.frame(data[1:(size - i), response],
+                             data[(i + 1):size, explanatory])
+    names(temp.frame) <- c(response, explanatory)
+    
     # create lag plot
     plots[[paste('p', as.character(i))]] <- 
-      ggplot(data = data.frame(data[1:(size - i), response],
-                               data[(i + 1):size, explanatory]),
+      ggplot(data = temp.frame,
              aes_string(x = explanatory, y = response)) +
       geom_point() +
       geom_smooth(method = 'lm') +
@@ -41,8 +45,10 @@ plot.cross.lags <- function(data, response, explanatory, max.lags, start.lag = 1
   
   # return the lag correlations
   return(
-    data.frame('variable' = rep(explanatory, loops),
+    data.frame('variable' = rep(explanatory, max.lags - start.lag + 1),
                'lags' = start.lag:max.lags,
-               'correlation' = corr)
+               'correlation' = corr,
+               stringsAsFactors = F)
   )
 }
+
