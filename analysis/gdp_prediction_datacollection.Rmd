@@ -3,6 +3,9 @@ title: "GDP Prediction"
 author: "Nikhil Gupta"
 date: "`r Sys.time()`"
 output:
+  github_document:
+    toc: yes
+    toc_depth: 6
   html_document:
     toc: yes
     toc_depth: 6
@@ -277,18 +280,22 @@ nfjobs %>% glimpse()
 ```
 
 ```{r}
-nfjobs = nfjobs %>%    
-    tq_transmute(mutate_fun = to.period,
+nfjobschg = nfjobs %>%    
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "nfjobschg") %>% 
+  mutate(nfjobschg = nfjobschg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
                  period = aggregate.period, 
                  indexAt = index.at,
-                 col_rename = "nfjobs")
+                 col_rename = "nfjobschg")
 
-nfjobs %>% glimpse()
+nfjobschg %>% glimpse()
 ```
 
 ```{r}
-nfjobs %>%
-    ggplot(aes(x = date, y = nfjobs)) +
+nfjobschg %>%
+    ggplot(aes(x = date, y = nfjobschg)) +
     geom_line() +
     #labs(title = title, y = y_label, x = x_label) + 
     theme_tq()
@@ -474,18 +481,22 @@ cpi %>% glimpse()
 ```
 
 ```{r}
-cpi = cpi %>%    
-    tq_transmute(mutate_fun = to.period,
+cpichg = cpi %>%  
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "cpichg") %>% 
+  mutate(cpichg = cpichg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
                  period = aggregate.period, 
                  indexAt = index.at,
-                 col_rename = "cpi")
+                 col_rename = "cpichg")
 
-cpi %>% glimpse()
+cpichg %>% glimpse()
 ```
 
 ```{r}
-cpi %>%
-    ggplot(aes(x = date, y = cpi)) +
+cpichg %>%
+    ggplot(aes(x = date, y = cpichg)) +
     geom_line() +
     #labs(title = title, y = y_label, x = x_label) + 
     theme_tq()
@@ -501,18 +512,22 @@ population %>% glimpse()
 ```
 
 ```{r}
-population = population %>%    
-    tq_transmute(mutate_fun = to.period,
+popchg = population %>%  
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "popchg") %>% 
+  mutate(popchg = popchg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
                  period = aggregate.period, 
                  indexAt = index.at,
-                 col_rename = "population")
+                 col_rename = "popchg")
 
-population %>% glimpse()
+popchg %>% glimpse()
 ```
 
 ```{r}
-population %>%
-    ggplot(aes(x = date, y = population)) +
+popchg %>%
+    ggplot(aes(x = date, y = popchg)) +
     geom_line() +
     #labs(title = title, y = y_label, x = x_label) + 
     theme_tq()
@@ -563,22 +578,27 @@ crude_wti %>% glimpse()
 ```
 
 ```{r}
-crude_wti = crude_wti %>%    
-    tq_transmute(mutate_fun = to.period,
+crude_wtichg = crude_wti %>%    
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "crude_wtichg") %>% 
+  mutate(crude_wtichg = crude_wtichg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
                  period = aggregate.period, 
                  indexAt = index.at,
-                 col_rename = "crude_wti")
+                 col_rename = "crude_wtichg")
 
-crude_wti %>% glimpse()
+crude_wtichg %>% glimpse()
 ```
 
 ```{r}
-crude_wti %>%
-    ggplot(aes(x = date, y = crude_wti)) +
+crude_wtichg %>%
+    ggplot(aes(x = date, y = crude_wtichg)) +
     geom_line() +
     #labs(title = title, y = y_label, x = x_label) + 
     theme_tq()
 ```
+
 ### Producer Price Index
 
 ```{r}
@@ -589,18 +609,22 @@ ppi %>% glimpse()
 ```
 
 ```{r}
-ppi = ppi %>%    
-    tq_transmute(mutate_fun = to.period,
+ppichg = ppi %>%    
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "ppichg") %>% 
+  mutate(ppichg = ppichg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
                  period = aggregate.period, 
                  indexAt = index.at,
-                 col_rename = "ppi")
+                 col_rename = "ppichg")
 
-ppi %>% glimpse()
+ppichg %>% glimpse()
 ```
 
 ```{r}
-ppi %>%
-    ggplot(aes(x = date, y = ppi)) +
+ppichg %>%
+    ggplot(aes(x = date, y = ppichg)) +
     geom_line() +
     #labs(title = title, y = y_label, x = x_label) + 
     theme_tq()
@@ -619,18 +643,23 @@ gold %>% glimpse()
 ```
 
 ```{r}
-gold = gold %>%    
-    tq_transmute(mutate_fun = to.period,
+
+goldchg = gold %>%    
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "goldchg") %>% 
+  mutate(goldchg = goldchg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
                  period = aggregate.period, 
                  indexAt = index.at,
-                 col_rename = "gold")
+                 col_rename = "goldchg")
 
-gold %>% glimpse()
+goldchg %>% glimpse()
 ```
 
 ```{r}
-gold %>%
-    ggplot(aes(x = date, y = gold)) +
+goldchg %>%
+    ggplot(aes(x = date, y = goldchg)) +
     geom_line() +
     #labs(title = title, y = y_label, x = x_label) + 
     theme_tq()
@@ -648,18 +677,22 @@ china %>% glimpse()
 ```
 
 ```{r}
-china = china %>%    
-    tq_transmute(mutate_fun = to.period,
+japanchg = china %>% 
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "japanchg") %>% 
+  mutate(japanchg = japanchg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
                  period = aggregate.period, 
                  indexAt = index.at,
-                 col_rename = "china")
-
-china %>% glimpse()
+                 col_rename = "japanchg")
+ 
+japanchg %>% glimpse()
 ```
 
 ```{r}
-china %>%
-    ggplot(aes(x = date, y = china)) +
+japanchg %>%
+    ggplot(aes(x = date, y = japanchg)) +
     geom_line() +
     #labs(title = title, y = y_label, x = x_label) + 
     theme_tq()
@@ -675,18 +708,22 @@ japan %>% glimpse()
 ```
 
 ```{r}
-japan = japan %>%    
-    tq_transmute(mutate_fun = to.period,
+japanchg = japan %>%    
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "japanchg") %>% 
+  mutate(japanchg = japanchg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
                  period = aggregate.period, 
                  indexAt = index.at,
-                 col_rename = "japan")
+                 col_rename = "japanchg")
 
-japan %>% glimpse()
+japanchg %>% glimpse()
 ```
 
 ```{r}
-japan %>%
-    ggplot(aes(x = date, y = japan)) +
+japanchg %>%
+    ggplot(aes(x = date, y = japanchg)) +
     geom_line() +
     #labs(title = title, y = y_label, x = x_label) + 
     theme_tq()
@@ -703,18 +740,22 @@ uk %>% glimpse()
 ```
 
 ```{r}
-uk = uk %>%    
-    tq_transmute(mutate_fun = to.period,
+ukchg = uk %>%  
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+               period = "quarterly", 
+               col_rename = "ukchg") %>% 
+  mutate(ukchg = ukchg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
                  period = aggregate.period, 
                  indexAt = index.at,
-                 col_rename = "uk")
+                 col_rename = "ukchg")
 
-uk %>% glimpse()
+ukchg %>% glimpse()
 ```
 
 ```{r}
-uk %>%
-    ggplot(aes(x = date, y = uk)) +
+ukchg %>%
+    ggplot(aes(x = date, y = ukchg)) +
     geom_line() +
     #labs(title = title, y = y_label, x = x_label) + 
     theme_tq()
@@ -726,22 +767,22 @@ uk %>%
 ```{r}
 dfs = list(gdp_change = gdp_change,
            labor_unrate = unrate,
-           labor_nfjobs = nfjobs,
+           labor_nfjobschg = nfjobschg,
            monitory_treas10yr = treas10yr,
            # monitory_treas3mo = treas3mo,
            # monitory_treas10yr3mo = treas10yr3mo,
            monitory_fedintrate = fedintrate,
            # monitory_libor3mo = libor3mo,
            consumer_personincomechg = personincomechg,
-           consumer_cpi = cpi,
-           consumer_population = population,
+           consumer_cpichg = cpichg,
+           consumer_popchg = popchg,
            business_corpprofitchg = corpprofitchg,
-           business_ccrude_wti = crude_wti,
-           business_ppi = ppi,
-           macro_gold = gold,
-           macro_exc_japan = japan,
-           # macro_exc_china = china,
-           macro_exc_uk = uk
+           business_crude_wtichg = crude_wtichg,
+           business_ppichg = ppichg,
+           macro_goldchg = goldchg,
+           macro_exc_japanchg = japanchg,
+           # macro_exc_chinachg = chinachg,
+           macro_exc_ukchg = ukchg
            )
 
 for (i in 1:length(dfs)){
@@ -776,10 +817,9 @@ write.csv(data, "../data/economic_indicators_all_ex_3mo_china.csv", row.names = 
 
 ## Questions for Dr. Sadler
 
-1. Why is ARIMA prediction jumping like that at the beginning
-2. Some data is quarterly and some if monthly. How do we not lose the monthly granularity and still use the quarterly data? Is this still possible, since our output (GDP) is measured quarterly, i.e. our can we predict quarterly data using monthly frequency of certain variables?
-3. If we expect certain predictors to themselves be non-stationary (such as $ corporate profits), should we convert this to a stationary signal such as % change from las period?
-4. When collecting the data (predictors), some are seasonally adjusted and some are not. If we have a choice, which one should we pick? Does it matter?
+1. Some data is quarterly and some if monthly. How do we not lose the monthly granularity and still use the quarterly data? Is this still possible, since our output (GDP) is measured quarterly, i.e. our can we predict quarterly data using monthly frequency of certain variables?
+2. If we expect certain predictors to themselves be non-stationary (such as $ corporate profits), should we convert this to a stationary signal such as % change from las period?
+3. When collecting the data (predictors), some are seasonally adjusted and some are not. If we have a choice, which one should we pick? Does it matter?
 
 ## Things to Consider
 
