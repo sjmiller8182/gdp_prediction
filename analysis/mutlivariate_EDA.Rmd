@@ -12,6 +12,7 @@ library(ggplot2)
 library(tseries)
 library(vars)
 library(reshape)
+source('./plotting.R')
 ```
 
 
@@ -28,6 +29,7 @@ library(reshape)
 data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")
 data %>% glimpse()
 ```
+
 
 # Checking for seasonality
 ```{r}
@@ -58,6 +60,7 @@ ggplot(df.m) +
 
 var_interest = 'gdp_change'
 lag.max = 12
+max_ccf = lag.max
 
 results = tribble(~variable, ~max_ccf_index, ~max_ccf_value)
 for (name in colnames(data %>% dplyr::select(-date))){
@@ -81,21 +84,131 @@ results %>%
 
 ```
 
+# Lag Correlations
+
+The the relationship between the response variable and lags of the explanatory variables.
+
+## Unemployement Rate
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- plot.cross.lags(data, 'gdp_change', 'unrate', 16)
+```
+
+## Change in Non-Farm Jobs
+
+Correlations are low to moderate in the first few lags.
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'nfjobschg', 16))
+```
+
+## 10 Yr Treasury Yield
+
+Correlations are moderate in the first 16 lags of the explanatory variable.
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'treas10yr', 16))
+```
+
+## Federal Interest Rate
+
+Correlations are moderate in the first 16 lags of the explanatory variable.
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'fedintrate', 16))
+```
+
+## Change in Personal Income
+
+Correlations are low to moderate in the first few lags of the explanatory variable.
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'personincomechg', 16))
+```
+
+## Change in CPI
+
+Correlations are low to moderate in the first 16 lags of the explanatory variable.
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'cpichg', 16))
+```
+
+## Change in Population
+
+Correlations are low in the first 16 lags of the explanatory variable.
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'popchg', 16))
+```
+
+## Change in Corporate Profits
+
+There does not appear to be evidence of correlation between change in gdp and change in corporate profits.
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'corpprofitchg', 16))
+```
+
+## Change in Crude Prices
+
+There does not appear to be evidence of correlation between change in gdp and change in crude prices.
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'crude_wtichg', 16))
+```
+
+## Change in PPI
+
+There does not appear to be evidence of correlation between change in gdp and change in ppi.
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'ppichg', 16))
+```
+
+## Change in Gold Prices
+
+There appears to be weak evidence of correlation between change in gdp and lags of change in gold prices
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'goldchg', 16))
+```
+
+## japanchg
+
+There does not appear to be evidence of correlation between change in gdp and japanchg.
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'japanchg', 16))
+```
+
+## ukchg
+
+There does not appear to be evidence of correlation between change in gdp and ukchg
+
+```{r, message=FALSE, fig.height=10, fig.width=10}
+correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'ukchg', 16))
+```
+
+## Summary Table of Lagged Cross-Correlations
+
+```{r}
+correlations %>% 
+  group_by(variable) %>%
+  summarise(
+    mean_corr = mean(correlation),
+    max_corr = max(correlation)
+    ) %>%
+  arrange(desc(mean_corr))
+```
+
 
 # Subset Data
 
-* Only keep unrate, nfjobs, treas10yr, fedintrate, personincomechg based on previous multivariate EDA
+Subset to primary explanatory variables based on lagged cross-correlations.
 
 ```{r}
-#dat <- data %>% dplyr::select(c(gdp_change, unrate, nfjobs, treas10yr, fedintrate, personincomechg))
-dat <- data %>% dplyr::select(-c(date))
-dat <- dat %>% dplyr::select(-c(cpi))
-```
-
-## cpi - population collinearity
-
-```{r}
-summary(lm(population ~ cpi, data = data))
+dat <- data %>% dplyr::select(c(gdp_change, fedintrate, treas10yr, cpichg, popchg, ppichg, nfjobschg, unrate))
 ```
 
 
@@ -109,6 +222,7 @@ ggplot(df.m) +
 
 ```
 
+
 # VAR Model
 
 ```{r}
@@ -118,8 +232,8 @@ shift <- 2
 dat.train <- dat[1:(end - shift), ]
 dat.test <- dat[ (end - shift + 1)  :195, ]
 
-VARselect(dat, lag.max = 13, type = "both")
-lsfit=VAR(dat,p=7,type="both")
+VARselect(dat, lag.max = 16, type = "both")
+lsfit=VAR(dat,p=15,type="both")
 summary(lsfit)
 AIC(lsfit)
 
