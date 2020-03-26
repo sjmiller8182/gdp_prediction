@@ -1,6 +1,6 @@
 ---
 title: "R Notebook"
-output: github_notebook
+output: github_document
 ---
 
 ## Setup
@@ -265,35 +265,7 @@ points(seq(end - shift + 1, 195), dat.test$gdp_change)
 points(seq(end - shift + 1, 195), preds$f, type = 'b', pch = 15)
 ```
 
-# MLR Model with Correlated Errors
 
-```{r}
-# fit on the data before the prediction length
-ksfit <- lm(gdp_change ~ unrate + nfjobs + treas10yr + 
-              fedintrate + personincomechg, data = dat.train)
-
-# Evaluate the residuals for stationarity
-px = tswge::plotts.sample.wge(ksfit$residuals)
-# Looks to be stationary, we can model this using aic.wge
-
-aic.wge(ksfit$residuals, 0:15, q = 0)
-fit <- arima(dat.train$gdp_change, order = c(12, 0, 0), xreg = dat.train[ , 2:6])
-AIC(fit)
-
-tswgewrapped::evaluate_residuals(fit$residuals)
-
-# predict on the last 5 values
-preds <- predict(fit, n.ahead = dim(dat.test)[1], newxreg = dat.test[ , 2:6])
-
-# show the predictions
-preds$pred
-
-mean( (dat.test$gdp_change - preds$pred)^2 )
-
-plot(seq_along(dat.train$gdp_change), dat.train$gdp_change, xlim = c(170, 200))
-points(seq(end - shift + 1, 195), dat.test$gdp_change)
-points(seq(end - shift + 1, 195), preds$pred, type = 'b', pch = 15)
-```
 
 
 
