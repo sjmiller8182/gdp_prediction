@@ -87,9 +87,17 @@ results %>%
 * Only keep unrate, nfjobs, treas10yr, fedintrate, personincomechg based on previous multivariate EDA
 
 ```{r}
-dat <- data %>% dplyr::select(c(gdp_change, unrate, nfjobs, treas10yr, fedintrate, personincomechg))
-dat <- data %>% dplyr::select(c(-date, -cpi))
+#dat <- data %>% dplyr::select(c(gdp_change, unrate, nfjobs, treas10yr, fedintrate, personincomechg))
+dat <- data %>% dplyr::select(-c(date))
+dat <- dat %>% dplyr::select(-c(cpi))
 ```
+
+## cpi - population collinearity
+
+```{r}
+summary(lm(population ~ cpi, data = data))
+```
+
 
 ## Plot Subset Data
 
@@ -115,6 +123,9 @@ lsfit=VAR(dat,p=7,type="both")
 summary(lsfit)
 AIC(lsfit)
 
+# check residuals on VAR model of gdp_change
+tswgewrapped::evaluate_residuals(residuals(lsfit)[ , 1])
+
 preds.trend <- predict(lsfit, n.ahead = dim(dat.test)[1])
 
 mean( (dat.test$gdp_change - preds.trend$fcst$gdp_change[, 1])^2 )
@@ -130,6 +141,8 @@ points(seq(end - shift + 1, 195), preds.trend$fcst$gdp_change[ , 1], type = 'b',
 ```{r}
 est <- est.arma.wge(dat.train$gdp_change, 13, 1)
 preds <- fore.arma.wge(dat.train$gdp_change, est$phi, est$theta, n.ahead = dim(dat.test)[1], plot = F)
+
+tswgewrapped::evaluate_residuals(est$res)
 
 mean( (dat.test$gdp_change - preds$f)^2 )
 
@@ -152,6 +165,8 @@ px = tswge::plotts.sample.wge(ksfit$residuals)
 aic.wge(ksfit$residuals, 0:15, q = 0)
 fit <- arima(dat.train$gdp_change, order = c(12, 0, 0), xreg = dat.train[ , 2:6])
 AIC(fit)
+
+tswgewrapped::evaluate_residuals(fit$residuals)
 
 # predict on the last 5 values
 preds <- predict(fit, n.ahead = dim(dat.test)[1], newxreg = dat.test[ , 2:6])
