@@ -328,10 +328,6 @@ correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'popchg'
 
 ## Change in Corporate Profits
 
-There does not appear to be evidence of correlation between change in
-gdp and change in corporate
-profits.
-
 ``` r
 correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'corpprofitchg', 16))
 ```
@@ -339,10 +335,6 @@ correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'corppro
 ![](mutlivariate_EDA_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 ## Change in Crude Prices
-
-There does not appear to be evidence of correlation between change in
-gdp and change in crude
-prices.
 
 ``` r
 correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'crude_wtichg', 16))
@@ -352,10 +344,6 @@ correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'crude_w
 
 ## Change in PPI
 
-There does not appear to be evidence of correlation between change in
-gdp and change in
-ppi.
-
 ``` r
 correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'ppichg', 16))
 ```
@@ -363,10 +351,6 @@ correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'ppichg'
 ![](mutlivariate_EDA_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 ## Change in Gold Prices
-
-There appears to be weak evidence of correlation between change in gdp
-and lags of change in gold
-prices
 
 ``` r
 correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'goldchg', 16))
@@ -376,10 +360,6 @@ correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'goldchg
 
 ## japanchg
 
-There does not appear to be evidence of correlation between change in
-gdp and
-japanchg.
-
 ``` r
 correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'japanchg', 16))
 ```
@@ -387,10 +367,6 @@ correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'japanch
 ![](mutlivariate_EDA_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
 
 ## ukchg
-
-There does not appear to be evidence of correlation between change in
-gdp and
-ukchg
 
 ``` r
 correlations <- rbind(correlations, plot.cross.lags(data, 'gdp_change', 'ukchg', 16))
@@ -413,19 +389,19 @@ correlations %>%
     ## # A tibble: 13 x 3
     ##    variable        mean_corr max_corr
     ##    <chr>               <dbl>    <dbl>
-    ##  1 fedintrate         0.550    0.601 
-    ##  2 treas10yr          0.533    0.601 
-    ##  3 cpichg             0.368    0.484 
-    ##  4 popchg             0.220    0.277 
-    ##  5 ppichg             0.161    0.257 
-    ##  6 nfjobschg          0.106    0.453 
-    ##  7 unrate             0.0882   0.283 
-    ##  8 goldchg            0.0707   0.222 
-    ##  9 personincomechg    0.0577   0.341 
-    ## 10 crude_wtichg       0.0465   0.0974
-    ## 11 japanchg          -0.0194   0.102 
-    ## 12 ukchg             -0.0297   0.0965
-    ## 13 corpprofitchg     -0.0331   0.0572
+    ##  1 treas10yr          0.352    0.408 
+    ##  2 fedintrate         0.328    0.388 
+    ##  3 cpichg             0.297    0.382 
+    ##  4 ppichg             0.156    0.305 
+    ##  5 unrate             0.154    0.206 
+    ##  6 nfjobschg          0.143    0.473 
+    ##  7 popchg             0.131    0.190 
+    ##  8 goldchg            0.0882   0.199 
+    ##  9 personincomechg    0.0552   0.230 
+    ## 10 corpprofitchg      0.0540   0.164 
+    ## 11 crude_wtichg       0.0317   0.0819
+    ## 12 ukchg             -0.0137   0.110 
+    ## 13 japanchg          -0.0547   0.0328
 
 # Subset Data
 

@@ -2,6 +2,7 @@
 
 library(ggplot2)
 library(gridExtra)
+library(dplyr)
 
 #' Plot a response vs lags of an explanatory variable
 #'
@@ -17,18 +18,19 @@ library(gridExtra)
 #' plot.cross.lags(data, 'response.var', 'explanatory.var')
 #'
 plot.cross.lags <- function(data, response, explanatory, max.lags, start.lag = 1){
+  
   size <- nrow(data)
   plots <- list()
   corr <- rep(0, max.lags - start.lag + 1)
   
   for (i in start.lag:max.lags){
     # calculate lag correlation
-    corr[i] <- cor(data[1:(size - i), response],
-                   data[(i + 1):size, explanatory])
+    corr[i] <- cor(data[(i + 1) : size, response],
+                   dplyr::lag(data[ , explanatory], i)[(i + 1) : size])
     
     # create lagged dataset
-    temp.frame <- data.frame(data[1:(size - i), response],
-                             data[(i + 1):size, explanatory])
+    temp.frame <- data.frame(data[(i + 1) : size, response],
+                             dplyr::lag(data[ , explanatory], i)[(i + 1) : size])
     names(temp.frame) <- c(response, explanatory)
     
     # create lag plot
