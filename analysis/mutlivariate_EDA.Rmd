@@ -180,7 +180,9 @@ correlations %>%
 Subset to primary explanatory variables based on lagged cross-correlations.
 
 ```{r}
-dat <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr, fedintrate, cpichg, inventorieschg, ppichg, popchg, homeownership, corpprofitchg, personincomechg, housingpermitschg))
+#dat <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr, fedintrate, cpichg, inventorieschg, ppichg, #popchg, homeownership, corpprofitchg, personincomechg, housingpermitschg))
+
+dat <- data %>% dplyr::select(c(gdp_change, inventorieschg, homeownership, personincomechg, housingpermitschg))
 ```
 
 
@@ -201,8 +203,8 @@ shift <- 2
 dat.train <- dat[1:(end - shift), ]
 dat.test <- dat[ (end - shift + 1)  :195, ]
 
-VARselect(dat, lag.max = 16, type = "both")
-lsfit=VAR(dat, p=12, type="both")
+VARselect(dat.train, lag.max = 4, type = "both")
+lsfit=VAR(dat.train, p=4, type="both")
 a = summary(lsfit)
 a$varresult$gdp_change
 AIC(lsfit)
@@ -214,9 +216,14 @@ preds.trend <- predict(lsfit, n.ahead = dim(dat.test)[1])
 
 mean( (dat.test$gdp_change - preds.trend$fcst$gdp_change[, 1])^2 )
 
-plot(seq_along(dat.train$gdp_change), dat.train$gdp_change, xlim = c(170, 200))
-points(seq(end - shift + 1, 195), dat.test$gdp_change)
-points(seq(end - shift + 1, 195), preds.trend$fcst$gdp_change[ , 1], type = 'b', pch = 15)
+plot(seq_along(dat.train$gdp_change), dat.train$gdp_change,
+     xlim = c(170, 200), xlab = 'Time (Steps)', ylab = 'Change in GDP', col=c("blue"))
+points(seq(end - shift + 1, 195), dat.test$gdp_change, col=c("blue"))
+points(seq(end - shift + 1, 195), preds.trend$fcst$gdp_change[ , 1], type = 'b', pch = 15, col = c("dark green"))
+abline(v=c(end - shift + 0.5), col=c("red"), lty=c(2), lwd=c(3))
+text(end - shift + 4, 15, 'Validation Set')
+legend("topleft", legend=c("Realization", "Forecast"),
+       col=c("blue", "dark green"), lty=c(F, F), pch = c(1, 15))
 ```
 
 
@@ -230,9 +237,14 @@ tswgewrapped::evaluate_residuals(est$res)
 
 mean( (dat.test$gdp_change - preds$f)^2 )
 
-plot(seq_along(dat.train$gdp_change), dat.train$gdp_change, xlim = c(170, 200))
-points(seq(end - shift + 1, 195), dat.test$gdp_change)
-points(seq(end - shift + 1, 195), preds$f, type = 'b', pch = 15)
+plot(seq_along(dat.train$gdp_change), dat.train$gdp_change, 
+     xlim = c(170, 200), xlab = 'Time (Steps)', ylab = 'Change in GDP', col=c("blue"))
+points(seq(end - shift + 1, 195), dat.test$gdp_change, col=c("blue"))
+points(seq(end - shift + 1, 195), preds$f, type = 'b', pch = 15, , col=c("dark green"))
+abline(v=c(end - shift + 0.5), col=c("red"), lty=c(2), lwd=c(3))
+text(end - shift + 4, 15, 'Validation Set')
+legend("topleft", legend=c("Realization", "Forecast"),
+       col=c("blue", "dark green"), lty=c(F, F), pch = c(1, 15))
 ```
 
 

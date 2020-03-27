@@ -38,7 +38,9 @@ data %>% glimpse()
 ```
 
 ```{r}
-data = data %>% dplyr::select(-date, fedintrate)
+#data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr, fedintrate, cpichg, inventorieschg, ppichg, #popchg, homeownership, corpprofitchg, personincomechg, housingpermitschg))
+
+data <- data %>% dplyr::select(c(gdp_change, inventorieschg, personincomechg, housingpermitschg))
 ```
 
 # CCF Analysis
@@ -72,25 +74,25 @@ for (name in colnames(data)){
 ## Multivariate Compare Object
 ```{r}
 
-lag.max = 12 # Increased since AIC is hitting its limit
+lag.max = 4 # Increased since AIC is hitting its limit
 
 models = list(
   # "VARS AIC Both A" = list(type = "VAR", select = "aic", trend_type = "both", lag.max = lag.max, sliding_ase = FALSE),
   # "VARS BIC Both A" = list(type = "VAR", select = "bic", trend_type = "both", lag.max = lag.max, sliding_ase = FALSE),
   "VARS AIC Both B" = list(type = "VAR", select = "aic", trend_type = "both", lag.max = lag.max, sliding_ase = TRUE),
-  "VARS AIC Trend B" = list(type = "VAR", select = "aic", trend_type = "trend", lag.max = lag.max, sliding_ase = TRUE),
-  "VARS AIC Const B" = list(type = "VAR", select = "aic", trend_type = "const", lag.max = lag.max, sliding_ase = TRUE),
-  "VARS AIC None B" = list(type = "VAR", select = "aic", trend_type = "none", lag.max = lag.max, sliding_ase = TRUE),
-  "VARS BIC Both B" = list(type = "VAR", select = "bic", trend_type = "both", lag.max = lag.max, sliding_ase = TRUE),
-  "VARS BIC Trend B" = list(type = "VAR", select = "bic", trend_type = "trend", lag.max = lag.max, sliding_ase = TRUE),
-  "VARS BIC Const B" = list(type = "VAR", select = "bic", trend_type = "const", lag.max = lag.max, sliding_ase = TRUE),
-  "VARS BIC None B" = list(type = "VAR", select = "bic", trend_type = "none", lag.max = lag.max, sliding_ase = TRUE)
+  #"VARS AIC Trend B" = list(type = "VAR", select = "aic", trend_type = "trend", lag.max = lag.max, sliding_ase = TRUE),
+  #"VARS AIC Const B" = list(type = "VAR", select = "aic", trend_type = "const", lag.max = lag.max, sliding_ase = TRUE),
+  #"VARS AIC None B" = list(type = "VAR", select = "aic", trend_type = "none", lag.max = lag.max, sliding_ase = TRUE),
+  "VARS BIC Both B" = list(type = "VAR", select = "bic", trend_type = "both", lag.max = lag.max, sliding_ase = TRUE)#,
+  #"VARS BIC Trend B" = list(type = "VAR", select = "bic", trend_type = "trend", lag.max = lag.max, sliding_ase = TRUE),
+  #"VARS BIC Const B" = list(type = "VAR", select = "bic", trend_type = "const", lag.max = lag.max, sliding_ase = TRUE),
+  #"VARS BIC None B" = list(type = "VAR", select = "bic", trend_type = "none", lag.max = lag.max, sliding_ase = TRUE)
 )
 ```
 
 ```{r}
 n.ahead = 2
-batch_size = 50 ## 12 years to predict the next 2 quarters
+batch_size = 100 ## 12 years to predict the next 2 quarters
 ```
 
 
@@ -126,8 +128,8 @@ mdl_compare$get_tabular_metrics(ases = FALSE) %>%
 
 ### Remove unwanted models
 ```{r}
-mdls_to_remove = c("VARS AIC Both B", "VARS AIC Const B", "VARS AIC None B", "VARS AIC Trend B")
-mdl_compare$remove_models(mdl_names = mdls_to_remove)
+#mdls_to_remove = c("VARS AIC Both B", "VARS AIC Const B", "VARS AIC None B", "VARS AIC Trend B")
+#mdl_compare$remove_models(mdl_names = mdls_to_remove)
 ```
 
 
@@ -158,6 +160,7 @@ mdl_compare$plot_histogram_ases()  # Same function as univariate
 ```{r}
 mdl_compare$statistical_compare() 
 ```
+
 
 # Manual Method
 
