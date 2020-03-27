@@ -1,0 +1,857 @@
+---
+title: "GDP Prediction"
+author: "Nikhil Gupta"
+date: "`r Sys.time()`"
+output:
+  github_document:
+    toc: yes
+    toc_depth: 6
+  html_document:
+    toc: yes
+    toc_depth: 6
+    toc_float: yes
+  word_document:
+    toc: yes
+    toc_depth: '6'
+always_allow_html: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Setup
+```{r}
+library(tswge)
+library(tidyverse)
+library(tidyquant)
+library(skimr)
+library(plyr)
+library(ggplot2)
+source("common_functions_tq.R")
+```
+
+
+```{r}
+from = "1970-01-01"
+```
+
+# GDP Growth (Seasonally Adjusted)
+
+```{r}
+ID = "A191RP1Q027SBEA"
+data = tqw_get_fred(ID = ID, from = from)
+data %>% glimpse()
+```
+
+
+```{r}
+data = data %>%    
+    tq_transmute(mutate_fun = to.period,
+                 period = "quarters", 
+                 col_rename = "gdp_change")
+data %>% glimpse()
+```
+
+```{r}
+data %>%
+    ggplot(aes(x = date, y = gdp_change)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+```{r}
+px = plotts.sample.wge(data$gdp_change, lag.max = 40)
+```
+
+## Observations
+
+* Looks like there are several peaks, but if we note carefully, the magnitude is less than 0.
+* Peak at f = 0 is the most appreciable --> so this could come from an ARMA, ARIMA (no seasonality) or an ARIMA (with seasonality model)
+* ACF's have not died down even after lag of at least 32 (8 years!!) --> some indication of extended autocorrelations pointing to a ARIMA model  (--> this is using older data)
+
+Let's see various fits to see.
+
+## Fits
+
+### Pure ARMA fit
+
+```{r}
+grid = aic5.wge(data$gdp_change)
+grid 
+```
+
+```{r}
+arma_fit = aic.wge(data$gdp_change)
+
+factor.wge(phi = arma_fit$phi)
+factor.wge(phi = arma_fit$theta)
+```
+
+#### Observations
+* This solves a lot of the open questions
+* The factor table for the fitted phi's shows that the value of the dominant root is very close to 1 hence the realization is displaying ARIMA type of properties.
+
+### ARIMA (no seasonality)
+
+```{r}
+results = tribble(~d, ~best_p, ~best_q, ~best_aic)
+
+
+data_diff = artrans.wge(data$gdp_change, phi.tr = 1, plottr = TRUE)
+# px = plotts.sample.wge(data_no_season)
+grid = aic5.wge(data_diff)
+best_aic = grid$`       aic`[1]
+best_p = grid$`   p`[1]
+best_q = grid$`   q`[1]
+  
+results = results %>% 
+  add_row(d = 1, best_p = best_p, best_q = best_q, best_aic = best_aic)
+
+results %>% 
+  arrange(best_aic)
+```
+
+```{r}
+px = plotts.sample.wge(data_diff)
+arima_fit = aic.wge(data_diff)
+
+if (arima_fit$p != 0){ factor.wge(phi = arima_fit$phi)   }
+if (arima_fit$q != 0){ factor.wge(phi = arima_fit$theta) }
+```
+
+
+#### Observations
+* Best AIC is for ARIMA(0,1,2) with s = 0. 
+* Best AIC = 2.444 which is very close to the pure ARMA model since that has a dominant root very close to 1 anyway.
+
+### ARIMA with d = 0 and Seasonality != 0
+```{r}
+
+results = tribble(~seasonality, ~best_p, ~best_q, ~best_aic)
+
+for (s in 2:12){
+  # Note when s = 1, this returns a ARIMA model with d = 1 and no seasonality
+  # For s > 1, this returns a ARIMA model with d = 0 and seasonality = s
+  data_no_season = artrans.wge(data$gdp_change, phi.tr = c(rep(0, s-1),1), plottr = TRUE)
+  # px = plotts.sample.wge(data_no_season)
+  grid = aic5.wge(data_no_season)
+  best_aic = grid$`       aic`[1]
+  best_p = grid$`   p`[1]
+  best_q = grid$`   q`[1]
+  
+  results = results %>% 
+    add_row(seasonality = s, best_p = best_p, best_q = best_q, best_aic = best_aic)
+}
+
+results %>% 
+  arrange(best_aic)
+```
+
+#### Observations
+* Best Model including Seasonality is ARIMA(5,0,2) with s = 2
+* However, this is not as good as the pure ARMA model or the ARIMA with no seasonality model.
+* We will exclude this from the final consideration.
+ 
+ 
+## Predictions
+
+```{r}
+n.ahead = 4
+
+compute_ase = function(data, forecast, n.ahead){
+  n = length(data)
+  ase = mean((data[(n-n.ahead+1):n] - forecast$f)^2)
+  return(ase)
+}
+
+results = tribble(~model, ~ase)
+```
+
+### Pure ARMA
+
+```{r}
+model = "ARMA"
+fore_arma = fore.arma.wge(data$gdp_change, phi = arma_fit$phi, theta = arma_fit$theta, n.ahead = n.ahead, lastn = TRUE)
+ase_arma = compute_ase(data = data$gdp_change, forecast = fore_arma, n.ahead = n.ahead)
+
+results = results %>% 
+    add_row(model = model, ase = ase_arma)
+
+
+```
+
+### ARIMA()
+```{r}
+model = "ARIMA"
+fore_arima = fore.aruma.wge(data$gdp_change, phi = arima_fit$phi, theta = arima_fit$theta, n.ahead = n.ahead, lastn = TRUE) 
+ase_arima = compute_ase(data = data$gdp_change, forecast = fore_arima, n.ahead = n.ahead)
+
+results = results %>% 
+    add_row(model = model, ase = ase_arima)
+```
+
+```{r}
+results
+```
+
+
+# Conclusion
+
+* ARMA(2,1) and ARIMA(0,1,2) seem to give similar results based on AIC
+* However, ARIMA fails terribly at predicton and the ASE is huge especially for immediate predictons.
+* Hence we would recommend using the ARMA model in this case.
+* This model only takes 'time' into consideration while building the model. There may be other exogenous variables that may impact GDP which we have not considered at all. We will do that next with VAR models and Neural Networks.
+
+# Collecting more correlated data
+
+```{r}
+aggregate.period = "quarters"
+index.at = "yearqtr"
+from = "1900-01-01"  ## Going to increase the horizon since we need more data for NN models
+```
+
+## GDP
+
+```{r}
+ID = "A191RP1Q027SBEA"
+
+gdp_change = tqw_get_fred(ID = ID, from = from)
+gdp_change %>% glimpse()
+```
+
+```{r}
+gdp_change = gdp_change %>%    
+    tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "gdp_change")
+
+gdp_change %>% glimpse()
+  
+```
+
+```{r}
+gdp_change %>%
+    ggplot(aes(x = date, y = gdp_change)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+## LABOR MARKET
+### Unemployment Rate
+```{r}
+ID = "UNRATE"
+
+unrate = tqw_get_fred(ID = ID, from = from)
+unrate %>% glimpse()
+```
+
+```{r}
+unrate = unrate %>%    
+    tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "unrate")
+
+unrate %>% glimpse()
+  
+```
+
+```{r}
+unrate %>%
+    ggplot(aes(x = date, y = unrate)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+
+### Non Farm Jobs (Seasonally Adjusted)
+```{r}
+ID = "PAYEMS"
+
+nfjobs = tqw_get_fred(ID = ID, from = from)
+nfjobs %>% glimpse()
+```
+
+```{r}
+nfjobschg = nfjobs %>%    
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "nfjobschg") %>% 
+  mutate(nfjobschg = nfjobschg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "nfjobschg")
+
+nfjobschg %>% glimpse()
+```
+
+```{r}
+nfjobschg %>%
+    ggplot(aes(x = date, y = nfjobschg)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+
+## MONITORY POLICY
+### 10 yr Treasury Rate
+```{r}
+ID = "DGS10"
+
+treas10yr = tqw_get_fred(ID = ID, from = from)
+treas10yr %>% glimpse()
+
+treas10yr %>% skim()  # Few missing values
+```
+
+```{r}
+treas10yr = treas10yr %>%    
+    tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "treas10yr")
+
+treas10yr %>% glimpse()
+# treas10yr %>% skim() # No missing values
+  
+```
+
+```{r}
+treas10yr %>%
+    ggplot(aes(x = date, y = treas10yr)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+### 3 mo Treasury Rate
+```{r}
+ID = "DGS3MO"
+
+treas3mo = tqw_get_fred(ID = ID, from = from)
+treas3mo %>% glimpse()
+```
+
+```{r}
+treas3mo = treas3mo %>%    
+    tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "treas3mo")
+
+treas3mo %>% glimpse()
+
+```
+
+```{r}
+treas3mo %>%
+    ggplot(aes(x = date, y = treas3mo)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+### 10yr - 3mo Treasury
+```{r}
+ID = "T10Y3M"
+
+treas10yr3mo = tqw_get_fred(ID = ID, from = from)
+treas10yr3mo %>% glimpse()
+```
+
+```{r}
+treas10yr3mo = treas10yr3mo %>%    
+    tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "treas10yr3mo")
+
+treas10yr3mo %>% glimpse()
+```
+
+```{r}
+treas10yr3mo %>%
+    ggplot(aes(x = date, y = treas10yr3mo)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+
+### Federal Funds Interest Rate 
+
+```{r}
+ID = "FEDFUNDS"
+
+fedintrate = tqw_get_fred(ID = ID, from = from)
+fedintrate %>% glimpse()
+```
+
+```{r}
+fedintrate = fedintrate %>%    
+    tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "fedintrate")
+
+fedintrate %>% glimpse()
+```
+
+```{r}
+fedintrate %>%
+    ggplot(aes(x = date, y = fedintrate)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+
+### 3 month LIBOR
+```{r}
+ID = "USD3MTD156N"
+
+libor3mo = tqw_get_fred(ID = ID, from = from)
+libor3mo %>% glimpse()
+```
+
+```{r}
+libor3mo = libor3mo %>%    
+    tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "libor3mo")
+
+libor3mo %>% glimpse()
+```
+
+```{r}
+libor3mo %>%
+    ggplot(aes(x = date, y = libor3mo)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+
+## CONSUMER RELATED
+### Real Disposable Personal Income Change
+
+```{r}
+ID = "A067RO1Q156NBEA"
+
+personincomechg = tqw_get_fred(ID = ID, from = from)
+personincomechg %>% glimpse()
+```
+
+```{r}
+personincomechg = personincomechg %>%    
+    tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "personincomechg")
+
+personincomechg %>% glimpse()
+```
+
+```{r}
+personincomechg %>%
+    ggplot(aes(x = date, y = personincomechg)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+### Consumer Price Index (inflation)
+
+
+```{r}
+ID = "CPIAUCNS"
+
+cpi = tqw_get_fred(ID = ID, from = from)
+cpi %>% glimpse()
+```
+
+```{r}
+cpichg = cpi %>%  
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "cpichg") %>% 
+  mutate(cpichg = cpichg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "cpichg")
+
+cpichg %>% glimpse()
+```
+
+```{r}
+cpichg %>%
+    ggplot(aes(x = date, y = cpichg)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+### Population
+
+```{r}
+ID = "POPTHM"
+
+population = tqw_get_fred(ID = ID, from = from)
+population %>% glimpse()
+```
+
+```{r}
+popchg = population %>%  
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "popchg") %>% 
+  mutate(popchg = popchg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "popchg")
+
+popchg %>% glimpse()
+```
+
+```{r}
+popchg %>%
+    ggplot(aes(x = date, y = popchg)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+
+
+## BUSINESS ENVIRONMENT
+### Corporate Profits
+
+```{r}
+ID = "CP"
+
+corpprofit = tqw_get_fred(ID = ID, from = from)
+corpprofit %>% glimpse()
+```
+
+```{r}
+corpprofitchg = corpprofit %>%    
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "corpprofitchg") %>% 
+  mutate(corpprofitchg = corpprofitchg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "corpprofitchg")
+
+corpprofitchg %>% glimpse()
+```
+
+```{r}
+corpprofitchg %>%
+    ggplot(aes(x = date, y = corpprofitchg)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+
+### Crude Oil
+
+```{r}
+ID = "WTISPLC"
+
+crude_wti = tqw_get_fred(ID = ID, from = from)
+crude_wti %>% glimpse()
+```
+
+```{r}
+crude_wtichg = crude_wti %>%    
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "crude_wtichg") %>% 
+  mutate(crude_wtichg = crude_wtichg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "crude_wtichg")
+
+crude_wtichg %>% glimpse()
+```
+
+```{r}
+crude_wtichg %>%
+    ggplot(aes(x = date, y = crude_wtichg)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+### Producer Price Index
+
+```{r}
+ID = "PPIACO"
+
+ppi = tqw_get_fred(ID = ID, from = from)
+ppi %>% glimpse()
+```
+
+```{r}
+ppichg = ppi %>%    
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "ppichg") %>% 
+  mutate(ppichg = ppichg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "ppichg")
+
+ppichg %>% glimpse()
+```
+
+```{r}
+ppichg %>%
+    ggplot(aes(x = date, y = ppichg)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+
+## MACRO ECONOMIC FACTORS
+
+### Gold
+
+```{r}
+ID = "GOLDAMGBD228NLBM"
+
+gold = tqw_get_fred(ID = ID, from = from)
+gold %>% glimpse()
+```
+
+```{r}
+
+goldchg = gold %>%    
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "goldchg") %>% 
+  mutate(goldchg = goldchg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "goldchg")
+
+goldchg %>% glimpse()
+```
+
+```{r}
+goldchg %>%
+    ggplot(aes(x = date, y = goldchg)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+### Exchange Rate
+
+#### China
+
+```{r}
+ID = "EXCHUS"
+
+china = tqw_get_fred(ID = ID, from = from)
+china %>% glimpse()
+```
+
+```{r}
+japanchg = china %>% 
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "japanchg") %>% 
+  mutate(japanchg = japanchg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "japanchg")
+ 
+japanchg %>% glimpse()
+```
+
+```{r}
+japanchg %>%
+    ggplot(aes(x = date, y = japanchg)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+#### Japan
+
+```{r}
+ID = "EXJPUS"
+
+japan = tqw_get_fred(ID = ID, from = from)
+japan %>% glimpse()
+```
+
+```{r}
+japanchg = japan %>%    
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+                 period = "quarterly", 
+                 col_rename = "japanchg") %>% 
+  mutate(japanchg = japanchg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "japanchg")
+
+japanchg %>% glimpse()
+```
+
+```{r}
+japanchg %>%
+    ggplot(aes(x = date, y = japanchg)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+
+#### UK
+
+```{r}
+ID = "EXUSUK"
+
+uk = tqw_get_fred(ID = ID, from = from)
+uk %>% glimpse()
+```
+
+```{r}
+ukchg = uk %>%  
+  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
+               period = "quarterly", 
+               col_rename = "ukchg") %>% 
+  mutate(ukchg = ukchg * 100) %>% 
+  tq_transmute(mutate_fun = to.period,
+                 period = aggregate.period, 
+                 indexAt = index.at,
+                 col_rename = "ukchg")
+
+ukchg %>% glimpse()
+```
+
+```{r}
+ukchg %>%
+    ggplot(aes(x = date, y = ukchg)) +
+    geom_line() +
+    #labs(title = title, y = y_label, x = x_label) + 
+    theme_tq()
+```
+
+
+# Merge Data
+
+```{r}
+dfs = list(gdp_change = gdp_change,
+           labor_unrate = unrate,
+           labor_nfjobschg = nfjobschg,
+           monitory_treas10yr = treas10yr,
+           # monitory_treas3mo = treas3mo,
+           # monitory_treas10yr3mo = treas10yr3mo,
+           monitory_fedintrate = fedintrate,
+           # monitory_libor3mo = libor3mo,
+           consumer_personincomechg = personincomechg,
+           consumer_cpichg = cpichg,
+           consumer_popchg = popchg,
+           business_corpprofitchg = corpprofitchg,
+           business_crude_wtichg = crude_wtichg,
+           business_ppichg = ppichg,
+           macro_goldchg = goldchg,
+           macro_exc_japanchg = japanchg,
+           # macro_exc_chinachg = chinachg,
+           macro_exc_ukchg = ukchg
+           )
+
+for (i in 1:length(dfs)){
+  print(paste0("Number of observations in ", names(dfs[i]), " = ", nrow(dfs[[i]])))
+}
+
+# We may want to remove some of these variables if that is reducing the number of observations 
+# and is already highly correlated to other features. Example: libor3mo is related to fedintrate
+```
+
+```{r}
+data = join_all(dfs, by='date', type='full') %>% 
+  arrange(date) %>% 
+  drop_na()
+  
+data %>% glimpse()
+data %>% skim()
+
+head(data)
+tail(data)
+```
+
+
+* But wait. We need to predict the GDP in the future quarters using data available in this quarter.
+* So we may need to change the gdp column to a lagged gdp column (for next quarter). We will evaluate how to do this.
+
+```{r}
+write.csv(data, "../data/economic_indicators_all_ex_3mo_china.csv", row.names = FALSE)
+```
+
+# TODO
+
+## Questions for Dr. Sadler
+
+1. Some data is quarterly and some if monthly. How do we not lose the monthly granularity and still use the quarterly data? Is this still possible, since our output (GDP) is measured quarterly, i.e. our can we predict quarterly data using monthly frequency of certain variables?
+2. If we expect certain predictors to themselves be non-stationary (such as $ corporate profits), should we convert this to a stationary signal such as % change from las period?
+3. When collecting the data (predictors), some are seasonally adjusted and some are not. If we have a choice, which one should we pick? Does it matter?
+
+## Things to Consider
+
+1. Consider removing the data related to the 3mo Treasury Rate (since it only has 137 quarterly observations) and China Exchange Rate (it only has < 160 quarterly observations and also this data was controlled artificially for a while). If we remove these we can increase our dataset to close to 200 observations (almost 50% increase).
+
+
+## Data Collection
+1. See if the value used during the resampling can be converted to the median value during that period.
+
+* https://cran.r-project.org/web/packages/tidyquant/vignettes/TQ02-quant-integrations-in-tidyquant.html#example-2-use-xts-to.period-to-change-the-periodicity-from-daily-to-monthly
+
+```
+unrate2 = unrate %>%    
+    tq_transmute(mutate_fun = apply.quarterly,
+                 indexAt = index.at,
+                 FUN = median,
+                 col_rename = "unrate") %>% 
+    mutate(date = paste0(year(date), " Q", quarter(date))) 
+# Need to convert date to type 'datetime'
+
+unrate2 %>% glimpse()
+```
+
+## EDA
+1. Plot correlation plots with lagged variables to gain insight into what features might be useful predictors.
+
+## Model Analysis
+1. If I take GDP data from way back (1946), the resultsfor ARMA and ARIMA analysis are very different (spectral densities, etc). So, while fitting, should we not do something like 5 fold cross validation?
+2. Use Rolling Window to calculate the ASE inistead of just the last n values. This will give a more robust estimate.
+
+
+```{r}
+
+
+```

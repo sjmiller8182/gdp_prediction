@@ -36,13 +36,14 @@ source("common_functions_tq.R")
 
 ```{r}
 from = "1970-01-01"
+to = "2019-09-30"
 ```
 
 # GDP Growth (Seasonally Adjusted)
 
 ```{r}
 ID = "A191RP1Q027SBEA"
-data = tqw_get_fred(ID = ID, from = from)
+data = tqw_get_fred(ID = ID, from = from, to = to)
 data %>% glimpse()
 ```
 
@@ -212,233 +213,57 @@ results
 aggregate.period = "quarters"
 index.at = "yearqtr"
 from = "1900-01-01"  ## Going to increase the horizon since we need more data for NN models
+to = "2019-09-30"
 ```
+
 
 ## GDP
 
 ```{r}
-ID = "A191RP1Q027SBEA"
-
-gdp_change = tqw_get_fred(ID = ID, from = from)
-gdp_change %>% glimpse()
+gdp_change = get_format_tq(ID = "A191RP1Q027SBEA", from = from, to = to, col_rename = 'gdp_change', return = FALSE)
 ```
 
-```{r}
-gdp_change = gdp_change %>%    
-    tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "gdp_change")
 
-gdp_change %>% glimpse()
-  
-```
-
-```{r}
-gdp_change %>%
-    ggplot(aes(x = date, y = gdp_change)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
-```
 
 ## LABOR MARKET
 ### Unemployment Rate
-```{r}
-ID = "UNRATE"
-
-unrate = tqw_get_fred(ID = ID, from = from)
-unrate %>% glimpse()
-```
 
 ```{r}
-unrate = unrate %>%    
-    tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "unrate")
-
-unrate %>% glimpse()
-  
+unrate = get_format_tq(ID = "UNRATE", from = from, to = to, col_rename = 'unrate', return = FALSE)
 ```
-
-```{r}
-unrate %>%
-    ggplot(aes(x = date, y = unrate)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
-```
-
 
 ### Non Farm Jobs (Seasonally Adjusted)
-```{r}
-ID = "PAYEMS"
-
-nfjobs = tqw_get_fred(ID = ID, from = from)
-nfjobs %>% glimpse()
-```
 
 ```{r}
-nfjobschg = nfjobs %>%    
-  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
-                 period = "quarterly", 
-                 col_rename = "nfjobschg") %>% 
-  mutate(nfjobschg = nfjobschg * 100) %>% 
-  tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "nfjobschg")
-
-nfjobschg %>% glimpse()
+nfjobschg = get_format_tq(ID = "PAYEMS", from = from, to = to, col_rename = 'nfjobschg', return = TRUE)
 ```
-
-```{r}
-nfjobschg %>%
-    ggplot(aes(x = date, y = nfjobschg)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
-```
-
 
 ## MONITORY POLICY
 ### 10 yr Treasury Rate
 ```{r}
-ID = "DGS10"
-
-treas10yr = tqw_get_fred(ID = ID, from = from)
-treas10yr %>% glimpse()
-
-treas10yr %>% skim()  # Few missing values
-```
-
-```{r}
-treas10yr = treas10yr %>%    
-    tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "treas10yr")
-
-treas10yr %>% glimpse()
-# treas10yr %>% skim() # No missing values
-  
-```
-
-```{r}
-treas10yr %>%
-    ggplot(aes(x = date, y = treas10yr)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
+treas10yr = get_format_tq(ID = "DGS10", from = from, to = to, col_rename = 'treas10yr', return = FALSE)
 ```
 
 ### 3 mo Treasury Rate
 ```{r}
-ID = "DGS3MO"
-
-treas3mo = tqw_get_fred(ID = ID, from = from)
-treas3mo %>% glimpse()
-```
-
-```{r}
-treas3mo = treas3mo %>%    
-    tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "treas3mo")
-
-treas3mo %>% glimpse()
-
-```
-
-```{r}
-treas3mo %>%
-    ggplot(aes(x = date, y = treas3mo)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
+treas3mo = get_format_tq(ID = "DGS3MO", from = from, to = to, col_rename = 'treas3mo', return = FALSE)
 ```
 
 ### 10yr - 3mo Treasury
 ```{r}
-ID = "T10Y3M"
-
-treas10yr3mo = tqw_get_fred(ID = ID, from = from)
-treas10yr3mo %>% glimpse()
-```
-
-```{r}
-treas10yr3mo = treas10yr3mo %>%    
-    tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "treas10yr3mo")
-
-treas10yr3mo %>% glimpse()
-```
-
-```{r}
-treas10yr3mo %>%
-    ggplot(aes(x = date, y = treas10yr3mo)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
+treas10yr3mo = get_format_tq(ID = "T10Y3M", from = from, to = to, col_rename = 'treas10yr3mo', return = FALSE)
 ```
 
 
 ### Federal Funds Interest Rate 
 
 ```{r}
-ID = "FEDFUNDS"
-
-fedintrate = tqw_get_fred(ID = ID, from = from)
-fedintrate %>% glimpse()
+fedintrate = get_format_tq(ID = "FEDFUNDS", from = from, to = to, col_rename = 'fedintrate', return = FALSE)
 ```
-
-```{r}
-fedintrate = fedintrate %>%    
-    tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "fedintrate")
-
-fedintrate %>% glimpse()
-```
-
-```{r}
-fedintrate %>%
-    ggplot(aes(x = date, y = fedintrate)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
-```
-
 
 ### 3 month LIBOR
 ```{r}
-ID = "USD3MTD156N"
-
-libor3mo = tqw_get_fred(ID = ID, from = from)
-libor3mo %>% glimpse()
-```
-
-```{r}
-libor3mo = libor3mo %>%    
-    tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "libor3mo")
-
-libor3mo %>% glimpse()
-```
-
-```{r}
-libor3mo %>%
-    ggplot(aes(x = date, y = libor3mo)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
+libor3mo = get_format_tq(ID = "USD3MTD156N", from = from, to = to, col_rename = 'libor3mo', return = FALSE)
 ```
 
 
@@ -446,321 +271,117 @@ libor3mo %>%
 ### Real Disposable Personal Income Change
 
 ```{r}
-ID = "A067RO1Q156NBEA"
-
-personincomechg = tqw_get_fred(ID = ID, from = from)
-personincomechg %>% glimpse()
+personincomechg = get_format_tq(ID = "A067RO1Q156NBEA", from = from, to = to, col_rename = 'personincomechg', return = FALSE)
 ```
 
-```{r}
-personincomechg = personincomechg %>%    
-    tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "personincomechg")
-
-personincomechg %>% glimpse()
-```
-
-```{r}
-personincomechg %>%
-    ggplot(aes(x = date, y = personincomechg)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
-```
 
 ### Consumer Price Index (inflation)
 
-
 ```{r}
-ID = "CPIAUCNS"
-
-cpi = tqw_get_fred(ID = ID, from = from)
-cpi %>% glimpse()
+cpichg = get_format_tq(ID = "CPIAUCNS", from = from, to = to, col_rename = 'cpichg', return = TRUE)
 ```
 
-```{r}
-cpichg = cpi %>%  
-  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
-                 period = "quarterly", 
-                 col_rename = "cpichg") %>% 
-  mutate(cpichg = cpichg * 100) %>% 
-  tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "cpichg")
-
-cpichg %>% glimpse()
-```
-
-```{r}
-cpichg %>%
-    ggplot(aes(x = date, y = cpichg)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
-```
 
 ### Population
 
 ```{r}
-ID = "POPTHM"
-
-population = tqw_get_fred(ID = ID, from = from)
-population %>% glimpse()
+popchg = get_format_tq(ID = "POPTHM", from = from, to = to, col_rename = 'popchg', return = TRUE)
 ```
 
+## HOUSING RELATED
+### Permits
 ```{r}
-popchg = population %>%  
-  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
-                 period = "quarterly", 
-                 col_rename = "popchg") %>% 
-  mutate(popchg = popchg * 100) %>% 
-  tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "popchg")
-
-popchg %>% glimpse()
+housingpermitschg = get_format_tq(ID = "PERMIT", from = from, to = to, col_rename = 'housingpermitschg', return = TRUE)
 ```
 
+### Housing Price Index
 ```{r}
-popchg %>%
-    ggplot(aes(x = date, y = popchg)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
+hpichg = get_format_tq(ID = "USSTHPI", from = from, to = to, col_rename = 'hpichg', return = TRUE)
 ```
 
+### Home Ownership
+```{r}
+homeownership = get_format_tq(ID = "RHORUSQ156N", from = from, to = to, col_rename = 'homeownership', return = FALSE)
+```
 
 
 ## BUSINESS ENVIRONMENT
 ### Corporate Profits
 
 ```{r}
-ID = "CP"
-
-corpprofit = tqw_get_fred(ID = ID, from = from)
-corpprofit %>% glimpse()
+corpprofitchg = get_format_tq(ID = "CP", from = from, to = to, col_rename = 'corpprofitchg', return = TRUE)
 ```
+
+### Inventories
 
 ```{r}
-corpprofitchg = corpprofit %>%    
-  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
-                 period = "quarterly", 
-                 col_rename = "corpprofitchg") %>% 
-  mutate(corpprofitchg = corpprofitchg * 100) %>% 
-  tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "corpprofitchg")
-
-corpprofitchg %>% glimpse()
+inventorieschg = get_format_tq(ID = "INVCMRMTSPL", from = from, to = to, col_rename = 'inventorieschg', return = TRUE)
 ```
+
+
+
+### Domestic Investments
 
 ```{r}
-corpprofitchg %>%
-    ggplot(aes(x = date, y = corpprofitchg)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
+## Gives issues with conversion to to % change
+# investment = get_format_tq(ID = "W790RC1Q027SBEA", from = from, to = to, col_rename = 'investment', return = FALSE)
+# investmentchg = get_format_tq(ID = "W790RC1Q027SBEA", from = from, to = to, col_rename = 'investmentchg', return = TRUE)
 ```
-
 
 ### Crude Oil
 
 ```{r}
-ID = "WTISPLC"
-
-crude_wti = tqw_get_fred(ID = ID, from = from)
-crude_wti %>% glimpse()
-```
-
-```{r}
-crude_wtichg = crude_wti %>%    
-  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
-                 period = "quarterly", 
-                 col_rename = "crude_wtichg") %>% 
-  mutate(crude_wtichg = crude_wtichg * 100) %>% 
-  tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "crude_wtichg")
-
-crude_wtichg %>% glimpse()
-```
-
-```{r}
-crude_wtichg %>%
-    ggplot(aes(x = date, y = crude_wtichg)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
+crude_wtichg = get_format_tq(ID = "WTISPLC", from = from, to = to, col_rename = 'crude_wtichg', return = TRUE)
 ```
 
 ### Producer Price Index
 
 ```{r}
-ID = "PPIACO"
-
-ppi = tqw_get_fred(ID = ID, from = from)
-ppi %>% glimpse()
+ppichg = get_format_tq(ID = "PPIACO", from = from, to = to, col_rename = 'ppichg', return = TRUE)
 ```
+
+### Industrial Production Index
+```{r}
+ipichg = get_format_tq(ID = "INDPRO", from = from, to = to, col_rename = 'ipichg', return = TRUE)
+```
+
+## STOCK MARKER
+### Willshire 5000
 
 ```{r}
-ppichg = ppi %>%    
-  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
-                 period = "quarterly", 
-                 col_rename = "ppichg") %>% 
-  mutate(ppichg = ppichg * 100) %>% 
-  tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "ppichg")
-
-ppichg %>% glimpse()
+wilshirechg = get_format_tq(ID = "WILL5000INDFC", from = from, to = to, col_rename = 'wilshirechg', return = TRUE)
 ```
-
-```{r}
-ppichg %>%
-    ggplot(aes(x = date, y = ppichg)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
-```
-
 
 ## MACRO ECONOMIC FACTORS
 
 ### Gold
 
 ```{r}
-ID = "GOLDAMGBD228NLBM"
-
-gold = tqw_get_fred(ID = ID, from = from)
-gold %>% glimpse()
+goldchg = get_format_tq(ID = "GOLDAMGBD228NLBM", from = from, to = to, col_rename = 'goldchg', return = TRUE)
 ```
 
-```{r}
-
-goldchg = gold %>%    
-  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
-                 period = "quarterly", 
-                 col_rename = "goldchg") %>% 
-  mutate(goldchg = goldchg * 100) %>% 
-  tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "goldchg")
-
-goldchg %>% glimpse()
-```
-
-```{r}
-goldchg %>%
-    ggplot(aes(x = date, y = goldchg)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
-```
 
 ### Exchange Rate
 
 #### China
 
 ```{r}
-ID = "EXCHUS"
-
-china = tqw_get_fred(ID = ID, from = from)
-china %>% glimpse()
+chinachg = get_format_tq(ID = "EXCHUS", from = from, to = to, col_rename = 'chinachg', return = TRUE)
 ```
 
-```{r}
-japanchg = china %>% 
-  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
-                 period = "quarterly", 
-                 col_rename = "japanchg") %>% 
-  mutate(japanchg = japanchg * 100) %>% 
-  tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "japanchg")
- 
-japanchg %>% glimpse()
-```
-
-```{r}
-japanchg %>%
-    ggplot(aes(x = date, y = japanchg)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
-```
 
 #### Japan
 
 ```{r}
-ID = "EXJPUS"
-
-japan = tqw_get_fred(ID = ID, from = from)
-japan %>% glimpse()
-```
-
-```{r}
-japanchg = japan %>%    
-  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
-                 period = "quarterly", 
-                 col_rename = "japanchg") %>% 
-  mutate(japanchg = japanchg * 100) %>% 
-  tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "japanchg")
-
-japanchg %>% glimpse()
-```
-
-```{r}
-japanchg %>%
-    ggplot(aes(x = date, y = japanchg)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
+japanchg = get_format_tq(ID = "EXJPUS", from = from, to = to, col_rename = 'japanchg', return = TRUE)
 ```
 
 
 #### UK
 
 ```{r}
-ID = "EXUSUK"
-
-uk = tqw_get_fred(ID = ID, from = from)
-uk %>% glimpse()
+ukchg = get_format_tq(ID = "EXUSUK", from = from, to = to, col_rename = 'ukchg', return = TRUE)
 ```
-
-```{r}
-ukchg = uk %>%  
-  tq_transmute(mutate_fun = periodReturn,  # Note this is different from others as I am converting raw values to % changes
-               period = "quarterly", 
-               col_rename = "ukchg") %>% 
-  mutate(ukchg = ukchg * 100) %>% 
-  tq_transmute(mutate_fun = to.period,
-                 period = aggregate.period, 
-                 indexAt = index.at,
-                 col_rename = "ukchg")
-
-ukchg %>% glimpse()
-```
-
-```{r}
-ukchg %>%
-    ggplot(aes(x = date, y = ukchg)) +
-    geom_line() +
-    #labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()
-```
-
 
 # Merge Data
 
@@ -776,9 +397,15 @@ dfs = list(gdp_change = gdp_change,
            consumer_personincomechg = personincomechg,
            consumer_cpichg = cpichg,
            consumer_popchg = popchg,
+           housing_housingpermitschg = housingpermitschg,
+           # housing_hpichg = hpichg,
+           housing_homeownership = homeownership,
            business_corpprofitchg = corpprofitchg,
+           business_inventorieschg = inventorieschg,
            business_crude_wtichg = crude_wtichg,
            business_ppichg = ppichg,
+           business_ipichg = ipichg,
+           stock_wilshirechg = wilshirechg,
            macro_goldchg = goldchg,
            macro_exc_japanchg = japanchg,
            # macro_exc_chinachg = chinachg,

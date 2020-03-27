@@ -21,30 +21,67 @@ tqw_get_fred = function(ID, from = NA, to = NA){
   return(data)
 }
 
-tqw_plot_ts = function(data, y_col = 'price', x_col = 'date', mutate = FALSE, old_name = NA,
-                       title = "Time Series Data", y_label = "Value", x_label = "Time"){
-  # 'data' is a dataframe containing the time and value as 2 of the columns
-  # x_col is the "Time' column name
-  # y_col is the Time Series Value column name
+tq_plot_ts = function(data, y_col = 'price', x_col = 'date', 
+                      title = "Time Series Data", y_label = "Value", x_label = "Time"){
   
-  if (mutate){
-    if (is.na(old_name)){
-      stop("You have selected to MUTATE the 'y' column (Time Series value), but have not specified the original name in the dataframe that represents this column. Please pass the 'old_name' argument to this function.")
-    }
-    data = tqw_mutate_column(data = data, old_name = old_name, new_name = y_col)
-  }
+  p = data %>%
+    ggplot2::ggplot(ggplot2::aes_string(x = x_col, y = y_col)) +
+    ggplot2::geom_line() +
+    ggplot2::labs(title = title, y = y_label, x = x_label) + 
+    tidyquant::theme_tq()
   
-  data %>%
-    ggplot(aes_string(x = x_col, y = y_col)) +
-    geom_line() +
-    labs(title = title, y = y_label, x = x_label) + 
-    theme_tq()  
+  print(p)
+  
 }
 
-tqw_mutate_column = function(data, old_name, new_name){
+
+get_format_tq = function(ID, from = NA, to = NA, col_rename = NA, plot = TRUE, verbose = 1,
+                         return = FALSE, return_period = "quarterly",
+                         resample_period = 'quarters', resample_index_at = 'yearqtr'){
+  data = tqw_get_fred(ID = ID, from = from, to = to)
+  if (verbose == 1){
+    cat("\n\nInitial data pull\n\n")
+    data %>% glimpse()
+  }
+  
+  if (is.na(col_rename)){
+    new_col_name = 'price'
+  }
+  else{
+    col_name = col_rename  
+  }
+  
+  if (return == TRUE){
+    data = data %>%    
+      tq_transmute(select = price,
+                   mutate_fun = periodReturn,  
+                   period = return_period, 
+                   col_rename = 'price') %>% 
+      dplyr::mutate(price = price * 100)
+    
+    if (verbose == 1){
+      cat("\n\nData after calculating period return\n\n")
+      data %>% glimpse()
+    }
+  }
+  
   data = data %>% 
-    mutate(!!new_name := !!as.name(old_name)) %>% 
-    select(-!!old_name)
+    tq_transmute(mutate_fun = to.period,
+                 period = resample_period, 
+                 indexAt = resample_index_at,
+                 col_rename = col_rename)
+  
+  if (verbose == 1){
+    cat("\n\nFinal Data\n\n")
+    data %>% glimpse()
+  }
+
+  if (plot == TRUE){
+    tq_plot_ts(data = data, y_col = col_rename, x_col = 'date', title = paste0(col_rename, " Over Time"), y_label = col_rename)
+  }
+  
   
   return(data)
+  
 }
+
