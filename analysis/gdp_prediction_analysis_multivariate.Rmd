@@ -30,6 +30,7 @@ library(tidyverse)
 library(ggplot2)
 library(tseries)
 library(RColorBrewer)
+library(reshape2)
 ```
 
 ```{r}
@@ -38,9 +39,9 @@ data %>% glimpse()
 ```
 
 ```{r}
-#data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr, fedintrate, cpichg, inventorieschg, ppichg, #popchg, homeownership, corpprofitchg, personincomechg, housingpermitschg))
+data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr, fedintrate, cpichg, inventorieschg, ppichg, popchg, homeownership, corpprofitchg, personincomechg, housingpermitschg))
 
-data <- data %>% dplyr::select(c(gdp_change, inventorieschg, personincomechg, housingpermitschg))
+#data <- data %>% dplyr::select(c(gdp_change, inventorieschg, personincomechg, housingpermitschg))
 ```
 
 # CCF Analysis
@@ -69,9 +70,470 @@ for (name in colnames(data)){
 * We will use lag.max = 12 in VARselect to give it enough room to pick the best model.
 
 
-# Usig tswgewrapped
+## Backward Variable Selection
+
+We start with the following variables in the model.
+AIC is used for selection criteria.
+
+
+gdp_change
+nfjobschg
+ipichg 
+treas10yr
+fedintrate 
+cpichg
+inventorieschg
+ppichg 
+popchg
+homeownership
+corpprofitchg
+personincomechg 
+housingpermitschg 
+
+### VAR with `trend_type = Trend`
+
+#### Iteration 1
+
+The following variables were selected in iteration one.
+
+personincomechg 
+housingpermitschg 
+fedintrate 
+nfjobschg 
+ipichg 
+
+AIC selected a model of lag 12 and lag 12 is used in at least one of the variables.
+
+```{r}
+lag.max = 12
+  
+models = list(
+                "VARS AIC Trend"    = list(select = "aic", trend_type = "trend", lag.max = lag.max)
+                )
+var_interest = 'gdp_change'
+
+mdl_build = ModelBuildMultivariateVAR$new(data = data, var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+
+  
+mdl_build$summarize_build()
+```
+
+
+#### Iteration 2
+
+The following variables were selected in iteration two
+
+personincomechg 
+housingpermitschg 
+
+AIC selected a model of lag 6, but only lag 4 was significant in at least one of the variables.
+
+```{r}
+lag.max = 12
+  
+models = list(
+                "VARS AIC Trend"    = list(select = "aic", trend_type = "trend", lag.max = lag.max)
+                )
+var_interest = 'gdp_change'
+
+mdl_build = ModelBuildMultivariateVAR$new(data = data %>% dplyr::select(c(gdp_change, personincomechg, housingpermitschg,
+                                                                          fedintrate, nfjobschg, ipichg)),
+                                          var_interest = var_interest,
+                                          mdl_list = models,
+                                          verbose = 1)
+
+  
+mdl_build$summarize_build()
+```
+
+
+#### Iteration 3
+
+Final iteration is reached with the two variables in the model with at least one significant variable at lag 4.
+
+```{r}
+lag.max = 4
+  
+models = list(
+                "VARS AIC Trend"    = list(select = "aic", trend_type = "trend", lag.max = lag.max)
+                )
+var_interest = 'gdp_change'
+
+mdl_build = ModelBuildMultivariateVAR$new(data = data %>% dplyr::select(c(gdp_change, personincomechg, housingpermitschg)),
+                                          var_interest = var_interest,
+                                          mdl_list = models,
+                                          verbose = 1)
+
+  
+mdl_build$summarize_build()
+```
+
+
+### VAR with `trend_type = Const`
+
+#### Iteration 1
+
+The following variables were selected in iteration one.
+
+nfjobschg 
+ipichg 
+treas10yr 
+fedintrate 
+popchg 
+homeownership 
+corpprofitchg 
+personincomechg 
+housingpermitschg 
+
+AIC selected a model of lag 12 and lag 12 is used in at least one of the variables.
+
+```{r}
+lag.max = 12
+  
+models = list(
+                "VARS AIC Trend"    = list(select = "aic", trend_type = "const", lag.max = lag.max)
+                )
+var_interest = 'gdp_change'
+
+mdl_build = ModelBuildMultivariateVAR$new(data = data, var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+
+  
+mdl_build$summarize_build()
+```
+
+
+#### Iteration 2
+
+All variables selected in iteration 1 remain in the model.
+
+AIC selected a model of lag 12, but only lag 11 significant in the model.
+
+```{r}
+lag.max = 12
+  
+models = list(
+                "VARS AIC Trend"    = list(select = "aic", trend_type = "const", lag.max = lag.max)
+                )
+var_interest = 'gdp_change'
+
+mdl_build = ModelBuildMultivariateVAR$new(data %>% dplyr::select(c(gdp_change, personincomechg, housingpermitschg,
+                                                                   fedintrate, nfjobschg, ipichg, treas10yr, popchg,
+                                                                   homeownership, corpprofitchg)),
+                                           var_interest = var_interest,
+                                           mdl_list = models, verbose = 1)
+
+  
+mdl_build$summarize_build()
+```
+
+
+#### Iteration 3
+
+All variables selected in iteration 1 remain in the model.
+
+AIC selected a model of lag 11 and at least one variable of lag 11 is significant in the model.
+
+```{r}
+lag.max = 11
+  
+models = list(
+                "VARS AIC Trend"    = list(select = "aic", trend_type = "const", lag.max = lag.max)
+                )
+var_interest = 'gdp_change'
+
+mdl_build = ModelBuildMultivariateVAR$new(data %>% dplyr::select(c(gdp_change, personincomechg, housingpermitschg,
+                                                                   fedintrate, nfjobschg, ipichg, treas10yr, popchg,
+                                                                   homeownership, corpprofitchg)),
+                                           var_interest = var_interest,
+                                           mdl_list = models, verbose = 1)
+
+  
+mdl_build$summarize_build()
+```
+
+
+
+### VAR with `trend_type = Both`
+
+#### Iteration 1
+
+The following variables were selected in iteration one.
+
+nfjobschg 
+ipichg  
+treas10yr 
+fedintrate  
+cpichg 
+popchg 
+homeownership 
+personincomechg  
+housingpermitschg 
+
+AIC selected a model of lag 12 and lag 12 is used in at least one of the variables.
+
+```{r}
+lag.max = 12
+  
+models = list(
+                "VARS AIC Trend"    = list(select = "aic", trend_type = "both", lag.max = lag.max)
+                )
+var_interest = 'gdp_change'
+
+mdl_build = ModelBuildMultivariateVAR$new(data = data, var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+
+  
+mdl_build$summarize_build()
+```
+
+
+#### Iteration 2
+
+The following variables were selected in iteration two
+
+nfjobschg 
+ipichg  
+treas10yr 
+fedintrate  
+personincomechg  
+housingpermitschg 
+
+AIC selected a model of lag 12, but only the variables were only significant to lag 10.
+
+```{r}
+lag.max = 12
+  
+models = list(
+                "VARS AIC Trend"    = list(select = "aic", trend_type = "both", lag.max = lag.max)
+                )
+var_interest = 'gdp_change'
+
+mdl_build = ModelBuildMultivariateVAR$new(data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
+                                                                   fedintrate, cpichg, popchg, homeownership,
+                                                                   personincomechg, housingpermitschg)),
+                                          var_interest = var_interest,
+                                          mdl_list = models, verbose = 1)
+
+  
+mdl_build$summarize_build()
+```
+
+
+#### Iteration 3
+
+The following variables were selected in iteration three
+
+fedintrate  
+personincomechg  
+housingpermitschg 
+
+AIC selected a model of lag 6, but only the variables were only significant to lag 2.
+
+```{r}
+lag.max = 10
+  
+models = list(
+                "VARS AIC Trend"    = list(select = "aic", trend_type = "both", lag.max = lag.max)
+                )
+var_interest = 'gdp_change'
+
+mdl_build = ModelBuildMultivariateVAR$new(data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
+                                                                   fedintrate, personincomechg, housingpermitschg)),
+                                          var_interest = var_interest,
+                                          mdl_list = models, verbose = 1)
+
+  
+mdl_build$summarize_build()
+```
+
+#### Iteration 4
+
+All models remain in the model at itertion 4.
+
+AIC selected a model of lag 2 and all variables are significant at lag of 2.
+
+```{r}
+lag.max = 2
+  
+models = list(
+                "VARS AIC Trend"    = list(select = "aic", trend_type = "both", lag.max = lag.max)
+                )
+var_interest = 'gdp_change'
+
+mdl_build = ModelBuildMultivariateVAR$new(data %>% dplyr::select(c(gdp_change, fedintrate,
+                                                                   personincomechg, housingpermitschg)),
+                                          var_interest = var_interest,
+                                          mdl_list = models, verbose = 1)
+
+  
+mdl_build$summarize_build()
+```
+
+
+### Compare Selected Models
+
+```{r}
+
+n.ahead <- 2
+batch_size <- 130 ## 12 years to predict the next 2 quarters
+
+# VAR with `trend_type = Trend`
+
+lag.max <- 4 # Increased since AIC is hitting its limit
+model.name <- 'VAR_AIC_Trend'
+model.variables <- c('gdp_change', 'personincomechg', 'personincomechg')
+
+models = list(
+  'VAR_AIC_Trend' = list(type = "VAR", select = "aic", trend_type = "trend", lag.max = lag.max, sliding_ase = TRUE)
+)
+
+mdl_compare <- ModelCompareMultivariateVAR$new(data = data %>% dplyr::select(model.variables),
+                                              mdl_list = models, var_interest = var_interest,
+                                              n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
+
+
+mdl_comp <- mdl_compare$get_tabular_metrics(ases = FALSE) %>% na.omit()
+forecasts <- data.frame(forecast = mdl_comp[which(mdl_comp$Model == model.name), 'f'],
+                        model = rep(model.name, length(which(mdl_comp$Model == model.name))),
+                        step = which(mdl_comp$Model == model.name) + batch_size)
+
+aes_cmp <- melt(mdl_compare$get_tabular_metrics(ases = T),
+                id.vars = c("Model", 'ASE'), measure.vars = c("Time_Test_Start", "Time_Test_End")) %>%
+            select(-c(variable))
+
+# VAR with `trend_type = Trend`
+
+lag.max <- 11 # Increased since AIC is hitting its limit
+model.name <- 'VAR_AIC_Const'
+model.variables <- c('gdp_change', 'nfjobschg', 'ipichg',
+                     'treas10yr', 'fedintrate', 'popchg', 
+                     'homeownership', 'corpprofitchg', 
+                     'personincomechg', 'housingpermitschg')
+
+models = list(
+  'VAR_AIC_Const' = list(type = "VAR", select = "aic", trend_type = "const", lag.max = lag.max, sliding_ase = TRUE)
+)
+
+mdl_compare <- ModelCompareMultivariateVAR$new(data = data %>% dplyr::select(model.variables),
+                                              mdl_list = models, var_interest = var_interest,
+                                              n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
+
+
+mdl_comp <- mdl_compare$get_tabular_metrics(ases = FALSE) %>% na.omit()
+forecasts <- rbind(forecasts, data.frame(forecast = mdl_comp[which(mdl_comp$Model == model.name), 'f'],
+                                         model = rep(model.name, length(which(mdl_comp$Model == model.name))),
+                                         step = which(mdl_comp$Model == model.name) + batch_size))
+
+aes_cmp <- rbind(aes_cmp, melt(mdl_compare$get_tabular_metrics(ases = T),
+                               id.vars = c("Model", 'ASE'), measure.vars = c("Time_Test_Start", "Time_Test_End")) %>%
+                            select(-c(variable)))
+
+# VAR with `trend_type = Trend`
+
+lag.max <- 2 # Increased since AIC is hitting its limit
+model.name <- 'VAR_AIC_Both'
+model.variables <- c('gdp_change', 'fedintrate', 'personincomechg', 'personincomechg')
+
+models = list(
+  'VAR_AIC_Both' = list(type = "VAR", select = "aic", trend_type = "both", lag.max = lag.max, sliding_ase = TRUE)
+)
+
+mdl_compare <- ModelCompareMultivariateVAR$new(data = data %>% dplyr::select(model.variables),
+                                              mdl_list = models, var_interest = var_interest,
+                                              n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
+
+
+mdl_comp <- mdl_compare$get_tabular_metrics(ases = FALSE) %>% na.omit()
+forecasts <- rbind(forecasts, data.frame(forecast = mdl_comp[which(mdl_comp$Model == model.name), 'f'],
+                                         model = rep(model.name, length(which(mdl_comp$Model == model.name))),
+                                         step = which(mdl_comp$Model == model.name) + batch_size))
+
+aes_cmp <- rbind(aes_cmp, melt(mdl_compare$get_tabular_metrics(ases = T),
+                               id.vars = c("Model", 'ASE'), measure.vars = c("Time_Test_Start", "Time_Test_End")) %>%
+                            select(-c(variable)))
+```
+
+## Compare Results of Model Selection
+
+### Forecasts vs Realization
+
+```{r}
+realization.end <- length(data$gdp_change)
+forecast.steps <- length(data$gdp_change[batch_size : realization.end])
+
+forecasts <- rbind(
+  forecasts,
+  data.frame(
+    f = data$gdp_change[batch_size : realization.end],
+    model = rep('Realization', forecast.steps),
+    step = seq(forecast.steps) + batch_size
+    )
+  )
+
+forecasts %>%
+  ggplot(aes(x = step, y = f, col = model)) +
+  geom_line() +
+  ggtitle('Model Forecasts with Realization') +
+  ylab('Change in GDP') +
+  xlab('Time Step')
+```
+
+### Forecasts vs Realization (with Reasonable Models)
+
+```{r}
+forecasts %>%
+  filter(model %in% c('VAR_AIC_Trend', 'VAR_AIC_Both', 'Realization')) %>%
+  ggplot(aes(x = step, y = f, col = model)) +
+  geom_line() +
+  ggtitle('Model Forecasts with Realization') +
+  ylab('Change in GDP') +
+  xlab('Time Step')
+```
+
+### ASE Over Time 
+
+```{r}
+aes_cmp %>% ggplot(aes(y = ASE, x = value, col = Model)) +
+  geom_line()
+```
+
+### ASE Over Time (with Reasonable Models)
+
+```{r}
+aes_cmp  %>% 
+  filter(Model %in% c('VAR_AIC_Trend', 'VAR_AIC_Both')) %>%
+  ggplot(aes(y = ASE, x = value, col = Model)) +
+  geom_line()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Multivariate Compare Object
+
 ```{r}
 
 lag.max = 4 # Increased since AIC is hitting its limit
