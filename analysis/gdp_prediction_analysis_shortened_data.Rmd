@@ -1,0 +1,169 @@
+---
+title: "gdp_prediction_analysis_shortened_data"
+author: "Stuart Miller"
+date: "April 2, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup
+
+```{r message=FALSE, warning=FALSE}
+library(tswge)
+library(tswgewrapped)
+library(tidyverse)
+library(ggplot2)
+library(tseries)
+data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")[80:195,]
+```
+
+
+# Shortened Data
+
+
+```{r}
+# shorten analysis to data beyond 75
+
+data %>% glimpse()
+x = data$gdp_change
+```
+
+```{r}
+px = plotts.sample.wge(x)
+```
+
+## Stationarity
+
+```{r}
+tswgewrapped::check_stationarity(x)
+```
+
+### Condition 1
+
+* There does not appear to be evidence of the mean changing over time.
+
+
+### Condition 2
+
+There does not apprear to be evidence of the variance of the realization changing over time.
+the drastic change at time step 75 maybe uncharacterisic of the process generating this realization, but it is difficult to determine with only one realization.
+
+### Condition 3
+
+The ACF of the first and second half of the realization appear to exhibit similar behavior.
+However, the autocorrelations have very low magnitudes - most of the autocorrelations do not appear to be significantly different than 0.
+
+
+### Conclusion
+
+* Given the above analysis, the realization appears to have been produced by a stationary process.
+
+## ARMA Model
+
+Given the analysis above, we will model it as stationary.
+
+### Model ID
+
+```{r}
+aicbic(x, 0:12, 0:3)
+```
+
+Both AIC and BIC select low order models with an ARMA(2,0) selected as the best ID by both criteria.
+The following models are selected by both criteria:
+
+* ARMA(2,0)
+* ARMA(1,1)
+* ARMA(2,1)
+* ARMA(3,0)
+
+
+### Model Fit
+
+An ARMA(2,0) was fit based on the model ID from AIC and BIC.
+The factor table for the estimated model does not show roots near the unit circle.
+
+```{r}
+est.s <- est.arma.wge(x, 2, 0)
+```
+
+The results from the model fit appear to be nearly consisent with white noise.
+The resulting realization appears very close to white noise.
+Several of the autocorrelations of the results are marginally significant, which is more than expected.
+
+```{r}
+tswgewrapped::evaluate_residuals(est.s$res)
+```
+
+
+### Forecast Results
+
+
+```{r}
+models = list("ARMA(2,1)" = list(phi = est.s$phi,
+                                  theta = est.s$theta,
+                                  vara = est.s$avar,
+                                  res = est.s$res,
+                                  sliding_ase = TRUE))
+
+mdl_compare = tswgewrapped::ModelCompareUnivariate$new(data = x, mdl_list = models,
+                                                       n.ahead = 2, batch_size = 44)
+```
+
+The model appears to capture the movement of the mean with 2-step ahead forecasts.
+The model is unable to capture the steap dip near time step 75.
+Generally, the realization is contained in the forecast limits of the model, but the realization does not exhibit significant wandering.
+
+```{r}
+mdl_compare$plot_batch_forecasts(only_sliding = TRUE)
+```
+
+The sliding window ASE shows that the model performs badly near the extreme step.
+
+```{r}
+mdl_compare$plot_batch_ases(only_sliding = TRUE)
+```
+
+## VAR Modeling
+
+### CCF Analysis
+
+
+```{r}
+
+lag.max = 12
+
+var_interest = 'gdp_change'
+
+for (name in colnames(data)){
+  # By convention, the X2 variable comes first
+  c = ccf(data[name], data[var_interest], lag.max = lag.max)
+  index = which(abs(c$acf[,1,1]) == max(abs(c$acf[,1,1])))
+  max_ccf = c$lag[,1,1][index] 
+  cat(paste("\nFor variable: ", name, " , max cross-correlation is at lag: ", max_ccf, sep = ""))
+}
+```
+
+Subset to variables that may be useful given cross-correlations.
+
+```{r}
+data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
+                                 fedintrate, cpichg, inventorieschg, ppichg, popchg,
+                                 homeownership, corpprofitchg, personincomechg, housingpermitschg,
+                                 japanchg))
+```
+
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Trend"    = list(select = "aic", trend_type = "trend", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data, var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+
+
+
