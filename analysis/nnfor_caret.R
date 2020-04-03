@@ -343,7 +343,7 @@ if(parallel == TRUE){
 ## Caret gives final model on the full data
 set.seed(1)
 
-manual_model = nnfor::mlp(y = ts(data %>% dplyr::select(logGNP) %>% purrr::pluck()),
+manual_model = nnfor::mlp(y = stats::ts(data %>% dplyr::select(logGNP) %>% purrr::pluck()),
                           xreg = data %>% dplyr::select(-logGNP),
                           reps = nnfor_model$bestTune$reps,
                           hd = nnfor_model$bestTune$hd,
