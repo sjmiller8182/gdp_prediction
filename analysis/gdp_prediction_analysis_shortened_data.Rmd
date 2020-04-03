@@ -126,6 +126,11 @@ The sliding window ASE shows that the model performs badly near the extreme step
 mdl_compare$plot_batch_ases(only_sliding = TRUE)
 ```
 
+```{r}
+mdl_compare$plot_histogram_ases()
+```
+
+
 ## VAR Modeling
 
 ### CCF Analysis
@@ -155,6 +160,11 @@ data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
                                  japanchg))
 ```
 
+### VAR with `trend_type = Trend`
+
+**Iteration 1**
+
+Starting with all variables with non-zero cross-correlation and max lag of 12.
 
 ```{r}
 lag.max = 12
@@ -163,6 +173,283 @@ mdl_build = ModelBuildMultivariateVAR$new(data = data, var_interest = var_intere
                                             mdl_list = models, verbose = 1)
 mdl_build$summarize_build()
 ```
+
+The recommended model as a lag of 7 and most variables are not significant in the model.
+Additionally, trend is not significant in the model.
+
+**Iteration 2**
+
+Variable `japanchg` is removed and max lags remains at 12.
+
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Trend"    = list(select = "aic", trend_type = "trend", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+All varaibles are now significant in the model.
+Trend is still not significant at the 0.05 level, but it is marginal.
+
+**Iteration 3**
+
+The max lag to test is reduced to 7.
+
+```{r}
+lag.max = 7
+models = list("VARS AIC Trend"    = list(select = "aic", trend_type = "trend", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.trend <- mdl_build$get_final_models(subset = 'r')
+```
+
+The recommended model remains the same as the previous model.
+
+### VAR with `trend_type = Both`
+
+**Iteration 1**
+
+Starting with all variables with non-zero cross-correlation and max lag of 12.
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Both"    = list(select = "aic", trend_type = "both", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data,
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+The recommended model as a lag of 7 and most variables are not significant in the model.
+Additionally, trend and const are not significant in the model.
+
+**Iteration 2**
+
+Variable `japanchg` is removed and max lags remains at 12.
+
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Both"    = list(select = "aic", trend_type = "both", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+All varaibles are now significant in the model.
+Trend and const are not significant in the model
+
+**Iteration 3**
+
+The max lag to test is reduced to 7.
+
+```{r}
+lag.max = 7
+models = list("VARS AIC Both"    = list(select = "aic", trend_type = "both", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.both <- mdl_build$get_final_models(subset = 'r')
+```
+
+The recommend model is the same as the previous model.
+
+### VAR with `trend_type = Const`
+
+**Iteration 1**
+
+Starting with all variables with non-zero cross-correlation and max lag of 12.
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Const"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data,
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+The recommended model as a lag of 7 and most variables are not significant in the model.
+Additionally, const is not significant in the model.
+
+**Iteration 2**
+
+Variable `japanchg` is removed and max lags remains at 12.
+
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Const"    = list(select = "aic", trend_type = "both", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+All varaibles are now significant in the model.
+Const is not significant in the model
+
+**Iteration 3**
+
+The max lag to test is reduced to 7.
+
+```{r}
+lag.max = 7
+models = list("VARS AIC Const"    = list(select = "aic", trend_type = "both", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.const <- mdl_build$get_final_models(subset = 'r')
+```
+
+The recommend model is the same as the previous model.
+
+### VAR with `trend_type = None`
+
+
+
+```{r}
+lag.max = 12
+models = list("VARS AIC None"    = list(select = "aic", trend_type = "none", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data,
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+
+```{r}
+lag.max = 12
+models = list("VARS AIC None"    = list(select = "aic", trend_type = "none", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+```{r}
+lag.max = 7
+models = list("VARS AIC None"    = list(select = "aic", trend_type = "none", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.none <- mdl_build$get_final_models(subset = 'r')
+```
+
+The recommended model is the same as the previous model.
+
+### Compare Models
+
+Three models show much higher error than the model with trend type of none.
+However, this model still has very large errors compared to the univariate models.
+
+```{r}
+models <- append(model.both, model.const)
+models <- append(models, model.none)
+models <- append(models, model.trend)
+
+for (name in names(models)){
+  models[[name]][['sliding_ase']] = TRUE
+}
+
+batch_size = 44
+n.ahead = 2
+
+mdl_compare = ModelCompareMultivariateVAR$new(data = data, var_interest = var_interest,
+                                              mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
+
+
+mdl_compare$plot_batch_forecasts()
+mdl_compare$plot_histogram_ases()
+```
+
+Rerun the comparison with the noisy models removed.
+
+```{r}
+mdl_compare$remove_models(c("VARS AIC Const - R",
+                            "VARS AIC Both - R",
+                            "VARS AIC Trend - R"))
+
+mdl_compare$plot_batch_forecasts()
+mdl_compare$plot_histogram_ases()
+```
+
+
+
+### Simpler Model
+
+The simpler model appears to lag the realization.
+These simpler model perform much better than the complex models.
+
+These models appear to predict the response variable at a lag.
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Const"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'housingpermitschg', 'inventorieschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.const <- mdl_build$get_final_models(subset = 'r')
+
+models = list("VARS AIC None"    = list(select = "aic", trend_type = "none", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'housingpermitschg', 'inventorieschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.none <- mdl_build$get_final_models(subset = 'r')
+
+models <- append(model.none, model.const)
+
+for (name in names(models)){
+  models[[name]][['sliding_ase']] = TRUE
+}
+
+batch_size = 44
+n.ahead = 2
+
+mdl_compare = ModelCompareMultivariateVAR$new(data = data, var_interest = var_interest,
+                                              mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
+
+mdl_compare$plot_batch_forecasts()
+mdl_compare$plot_histogram_ases()
+```
+
+
+
+
+
 
 
 
