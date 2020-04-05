@@ -81,6 +81,16 @@ data %>% glimpse()
 x = data$gdp_change
 ```
 
+# Response Variable
+
+The response variable is change in GDP, denoted as `gdp_change`.
+The realization, sample autocorrelations, and Parzen window are shown below.
+The realization appears to express wandering behavior with some oscillation.
+Based on the sample aucorrelations, wandering appears to be the dominate behavior.
+The oscillations do not appear to be expressed strongly in the sample autocorrelations.
+This is consisent with the Parzen window, which shows a dominate frequency at 0.
+The other frequencies shown in the parzen window have very low magnitudes.
+
 ```{r}
 px = plotts.sample.wge(x)
 ```
