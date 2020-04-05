@@ -156,6 +156,7 @@ As secondary evaluation, the Ljung-Box test does not reject the null hypothesis 
 However, all the models selected by AIC and BIC show a similar behavior.
 
 ```{r}
+# evaluate residuals of arma model
 tswgewrapped::evaluate_residuals(est.s$res)
 ```
 
@@ -164,6 +165,7 @@ tswgewrapped::evaluate_residuals(est.s$res)
 
 
 ```{r, results='hide'}
+# setup object with unitvariate model
 models = list("ARMA(2,1)" = list(phi = est.s$phi,
                                   theta = est.s$theta,
                                   vara = est.s$avar,
@@ -177,18 +179,24 @@ mdl_compare = tswgewrapped::ModelCompareUnivariate$new(data = x, mdl_list = mode
 The model appears to capture the movement of the mean with 2-step ahead forecasts.
 The model is unable to capture the steap dip near time step 75.
 Generally, the realization is contained in the forecast limits of the model, but the realization does not exhibit significant wandering.
-
-```{r}
-mdl_compare$plot_batch_forecasts(only_sliding = TRUE)
-```
-
 The sliding window ASE shows that the model performs badly near the extreme step.
 
 ```{r}
+# show sliding window forecasts
+mdl_compare$plot_batch_forecasts(only_sliding = TRUE)
+```
+
+
+
+```{r}
+# show ASE over time (windows)
 mdl_compare$plot_batch_ases(only_sliding = TRUE)
 ```
 
+
+
 ```{r}
+# show the distribution of ASEs
 mdl_compare$plot_histogram_ases()
 ```
 
@@ -199,13 +207,14 @@ mdl_compare$plot_histogram_ases()
 
 
 ```{r}
-
+# Use max lag of 12
 lag.max = 12
-
+# set the response variable
 var_interest = 'gdp_change'
 
+# plot the cross correlations between the response variable and the other variables
 for (name in colnames(data)){
-  # By convention, the X2 variable comes first
+  # By convention, the X2 variable comes first, the response comes second
   c = ccf(data[name], data[var_interest], lag.max = lag.max)
   index = which(abs(c$acf[,1,1]) == max(abs(c$acf[,1,1])))
   max_ccf = c$lag[,1,1][index] 
@@ -216,6 +225,7 @@ for (name in colnames(data)){
 Subset to variables that may be useful given cross-correlations.
 
 ```{r}
+# Subset data to most intersting variables
 data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
                                  fedintrate, cpichg, inventorieschg, ppichg, popchg,
                                  homeownership, corpprofitchg, personincomechg, housingpermitschg,
@@ -238,52 +248,65 @@ Thus, we only fit models with the constant term.
 
 The models selected contained the variables `housingpermitschg` and `inventorieschg`.
 
-```{r, message=FALSE}
+```{r, message=FALSE, results='hide'}
+# Use max lag of 12
 lag.max = 12
+# construct VAR model with type const and variables 'housingpermitschg', 'inventorieschg'
 models = list("VARS AIC Both"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
 mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'housingpermitschg', 'inventorieschg')],
                                           var_interest = var_interest,
                                             mdl_list = models, verbose = 1)
 
-mdl_build$summarize_build()
+#mdl_build$summarize_build()
 mdl_build$build_recommended_models()
 model.both <- mdl_build$get_final_models(subset = 'r')
 
+# construct VAR model with type const and variable 'inventorieschg'
 models = list("VARS AIC Inven"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
 mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'inventorieschg')],
                                           var_interest = var_interest,
                                             mdl_list = models, verbose = 1)
 
-mdl_build$summarize_build()
+#mdl_build$summarize_build()
 mdl_build$build_recommended_models()
 model.inven <- mdl_build$get_final_models(subset = 'r')
 
+# construct VAR model with type const and variable 'housingpermitschg'
 models = list("VARS AIC HousePerm"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
 mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'housingpermitschg')],
                                           var_interest = var_interest,
                                             mdl_list = models, verbose = 1)
 
-mdl_build$summarize_build()
+#mdl_build$summarize_build()
 mdl_build$build_recommended_models()
 model.housperm <- mdl_build$get_final_models(subset = 'r')
 
+# combine models in a list
 models <- append(model.both, model.inven)
 models <- append(models, model.housperm)
 
-
+# set models to use sliding window ASE
 for (name in names(models)){
   models[[name]][['sliding_ase']] = TRUE
 }
 
+# set the batch size (window) and forecast horizon
 batch_size = 44
 n.ahead = 2
 
+# run model comparison
 mdl_compare = ModelCompareMultivariateVAR$new(data = data, var_interest = var_interest,
                                               mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
 
+```
+
+```{r}
+# show forecasts on batches
 mdl_compare$plot_batch_forecasts()
+# show distributions of ASEs
 mdl_compare$plot_histogram_ases()
 ```
+
 
 It is difficult to determine when models appear to perform well based on the plot of the rolling forecasts.
 However, there appears to be some evidence that the forecast lags the behavior of the realization.
@@ -296,13 +319,47 @@ From the plot of the rolling ASE, the model containing only `inventorieschg` app
 The ASE appears to be lower on average over the windows with the spread of the main distribution also being lower than the other two models.
 The outliers of the ASE plot also appear to be as extreme or less extreme than the other two models.
 
-
-```{r}
-#mdl_compare$evaluate_residuals()
-```
-
 ## Neural Network Model
 
+### Hyperparameter Grid Search
+
+All of the data is used in the neural network.
+A grid search is performed over number of repetitions, the number of hidden layers, and whether seasonality is allowed.
+
+
+```{r}
+nnfor_grid = expand.grid(reps = c(15, 25, 35, 45),
+                         hd = c(1:7),
+                         allow.det.season = c(FALSE, TRUE))
+  
+model = ModelBuildNNforCaret$new(data = data %>% select(-date), var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 grid = nnfor_grid,
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+#model$summarize_hyperparam_results()
+#model$summarize_build()
+
+nnfor_model = model$get_final_models(subset = 'r')
+nnfor_model
+```
+
+The ASE associated with the grid of hyperparameters is shown in the heatmap below.
+The panel (True/False) is for the seasonality option.
+Seasonality does not appear to have an affect on ASE.
+However, the combination of number of hidden layers and number of repetitions strongly affects the ASE.
+The best hyperparameters based on this grid search are 15 repetitions and 3 hidden layers, which has a rolling window ASE of 6.74.
+
+```{r}
+model$plot_hyperparam_results()
+```
+
+```{r}
+model$summarize_best_hyperparams()
+```
 
 
 # References
