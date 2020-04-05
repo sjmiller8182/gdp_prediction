@@ -155,7 +155,7 @@ Several of the autocorrelations of the results are marginally significant, which
 As secondary evaluation, the Ljung-Box test does not reject the null hypothesis that residuals are white noise at K = 24, but does reject the null hypothesis at K = 48.
 However, all the models selected by AIC and BIC show a similar behavior.
 
-```{r}
+```{r, message=FALSE}
 # evaluate residuals of arma model
 tswgewrapped::evaluate_residuals(est.s$res)
 ```
@@ -181,24 +181,28 @@ The model is unable to capture the steap dip near time step 75.
 Generally, the realization is contained in the forecast limits of the model, but the realization does not exhibit significant wandering.
 The sliding window ASE shows that the model performs badly near the extreme step.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # show sliding window forecasts
 mdl_compare$plot_batch_forecasts(only_sliding = TRUE)
 ```
 
-
-
-```{r}
-# show ASE over time (windows)
-mdl_compare$plot_batch_ases(only_sliding = TRUE)
-```
-
-
+The histogram of ASEs from the sliding window shows that the errors are generally below 10.
+However, there are a few exteme values with on above 80.
 
 ```{r}
 # show the distribution of ASEs
 mdl_compare$plot_histogram_ases()
 ```
+
+Viewing the rolling window ASE over time, we see that the most extreme value occurs at the same location as the extreme value.
+This is not surprising since an ARMA model will tend toward the mean and this value is far from the window mean.
+
+```{r, message=FALSE, warning=FALSE}
+# show ASE over time (windows)
+mdl_compare$plot_batch_ases(only_sliding = TRUE)
+```
+
+
 
 
 ## VAR Model
@@ -328,23 +332,23 @@ A grid search is performed over number of repetitions, the number of hidden laye
 
 
 ```{r}
-nnfor_grid = expand.grid(reps = c(15, 25, 35, 45),
-                         hd = c(1:7),
-                         allow.det.season = c(FALSE, TRUE))
+#nnfor_grid = expand.grid(reps = c(15, 25, 35, 45),
+#                         hd = c(1:7),
+#                         allow.det.season = c(FALSE, TRUE))
   
-model = ModelBuildNNforCaret$new(data = data %>% select(-date), var_interest = "gdp_change", m = 6,
-                                 search = 'grid',
-                                 grid = nnfor_grid,
-                                 batch_size = 44, h = 2,
-                                 parallel = TRUE,
-                                 seed = 1,
-                                 verbose = 1)
+#model = ModelBuildNNforCaret$new(data = data %>% select(-date), var_interest = "gdp_change", m = 6,
+#                                 search = 'grid',
+#                                 grid = nnfor_grid,
+#                                 batch_size = 44, h = 2,
+#                                 parallel = TRUE,
+#                                 seed = 1,
+#                                 verbose = 1)
 
 #model$summarize_hyperparam_results()
 #model$summarize_build()
 
-nnfor_model = model$get_final_models(subset = 'r')
-nnfor_model
+#nnfor_model = model$get_final_models(subset = 'r')
+#nnfor_model
 ```
 
 The ASE associated with the grid of hyperparameters is shown in the heatmap below.
@@ -354,11 +358,11 @@ However, the combination of number of hidden layers and number of repetitions st
 The best hyperparameters based on this grid search are 15 repetitions and 3 hidden layers, which has a rolling window ASE of 6.74.
 
 ```{r}
-model$plot_hyperparam_results()
+#model$plot_hyperparam_results()
 ```
 
 ```{r}
-model$summarize_best_hyperparams()
+#model$summarize_best_hyperparams()
 ```
 
 
