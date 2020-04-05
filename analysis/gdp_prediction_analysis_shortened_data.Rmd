@@ -328,41 +328,57 @@ The outliers of the ASE plot also appear to be as extreme or less extreme than t
 ### Hyperparameter Grid Search
 
 All of the data is used in the neural network.
+We ran the neural network with different sets of variables and the performance appeared to decrease when varaibles were removed - 
+see *Neural Networks with Sets of Regressors* in the appedix for more details.
 A grid search is performed over number of repetitions, the number of hidden layers, and whether seasonality is allowed.
 
-
 ```{r}
-#nnfor_grid = expand.grid(reps = c(15, 25, 35, 45),
-#                         hd = c(1:7),
-#                         allow.det.season = c(FALSE, TRUE))
-  
-#model = ModelBuildNNforCaret$new(data = data %>% select(-date), var_interest = "gdp_change", m = 6,
-#                                 search = 'grid',
-#                                 grid = nnfor_grid,
-#                                 batch_size = 44, h = 2,
-#                                 parallel = TRUE,
-#                                 seed = 1,
-#                                 verbose = 1)
+data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")[80:195, ]
+data <- data %>% select(-date)
+```
+
+
+```{r, results='hide'}
+# setup search grid
+nnfor_grid = expand.grid(reps = c(15, 25, 35, 45),
+                         hd = c(1:7),
+                         allow.det.season = c(FALSE, TRUE))
+# search for best NN hyperparameters in given grid
+model = ModelBuildNNforCaret$new(data = data, var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 grid = nnfor_grid,
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
 
 #model$summarize_hyperparam_results()
 #model$summarize_build()
 
 #nnfor_model = model$get_final_models(subset = 'r')
-#nnfor_model
+#nfor_model
+
+temp <- model$summarize_best_hyperparams()
+res <- model$summarize_hyperparam_results()
+final.ase <- filter(res, reps == temp$reps &
+                      hd == temp$hd &
+                      allow.det.season == temp$allow.det.season)[['ASE']]
 ```
 
 The ASE associated with the grid of hyperparameters is shown in the heatmap below.
 The panel (True/False) is for the seasonality option.
 Seasonality does not appear to have an affect on ASE.
 However, the combination of number of hidden layers and number of repetitions strongly affects the ASE.
-The best hyperparameters based on this grid search are 15 repetitions and 3 hidden layers, which has a rolling window ASE of 6.74.
+The best hyperparameters based on this grid search are 15 repetitions and 3 hidden layers, which has a rolling window ASE of `r final.ase`.
 
 ```{r}
-#model$plot_hyperparam_results()
+model$plot_hyperparam_results()
 ```
 
+The best hyperparemeters are shown below
+
 ```{r}
-#model$summarize_best_hyperparams()
+model$summarize_best_hyperparams()
 ```
 
 
@@ -633,6 +649,194 @@ mdl_compare$remove_models(c("VARS AIC Const - R",
 mdl_compare$plot_batch_forecasts()
 mdl_compare$plot_histogram_ases()
 ```
+
+## Neural Networks with Sets of Regressors
+
+It is difficult to determine which exogeneous variables should be included in the model.
+We will see the impact by just random removing variables until no variables are left.
+Remove a random variable until only one variable is left in the model.
+
+**Results Summary**
+
+Essential the ASE appears to increase when variables are removed from the model.
+Based on this, we will fit the neural network with all the variables in the model.
+
+## Iteration 1
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 2
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 3
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+
+## Iteration 5
+
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'personincomechg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 5
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 6
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 7
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'cpichg', 'inventorieschg', 'ppichg', 'popchg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 8
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'ipichg', 'treas10yr',
+                                                           'cpichg', 'inventorieschg', 'ppichg', 'popchg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 9
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'ipichg', 'treas10yr',
+                                                           'cpichg', 'inventorieschg', 'popchg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 10
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'homeownership')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
 
 
 
