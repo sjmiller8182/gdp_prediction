@@ -212,6 +212,9 @@ This is not surprising since an ARMA model will tend toward the mean and this va
 mdl_compare$plot_batch_ases(only_sliding = TRUE)
 ```
 
+```{r}
+
+```
 
 
 
@@ -391,6 +394,11 @@ The best hyperparemeters are shown below
 model$summarize_best_hyperparams()
 ```
 
+## Ensemble Mode
+
+## Comparison
+
+## Conclusion
 
 # References
 
