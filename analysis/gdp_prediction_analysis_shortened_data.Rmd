@@ -101,8 +101,8 @@ px = plotts.sample.wge(x)
 
 We start the analysis with an assessment of startionarity of the realization.
 
-```{r}
-tswgewrapped::check_stationarity(x)
+```{r, message=FALSE, warning=FALSE}
+check_stationarity(x)
 ```
 
 ### Condition 1: Constant Mean
