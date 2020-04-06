@@ -1,74 +1,144 @@
 ---
-title: "gdp_prediction_analysis_shortened_data"
-author: "Stuart Miller"
-date: "April 2, 2020"
-output: html_document
+title: "GDP Prediction"
+author: "Nikhil Gutpa and Stuart Miller"
+date: "`r Sys.time()`"
+output:
+  github_document: 
+    toc: yes
+    toc_depth: 6
+  word_document:
+    toc: yes
+    toc_depth: '6'
+  html_document:
+    toc: yes
+    toc_depth: 6
+    toc_float: yes
+always_allow_html: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Setup
 
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 library(tswge)
 library(tswgewrapped)
 library(tidyverse)
 library(ggplot2)
 library(tseries)
-data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")[80:195,]
+data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")[80:195, ]
 ```
 
 
-# Shortened Data
 
+# Introduction
+
+Economic recessions are periods of time when an economy shinks.
+These periods of time generally costly to businesses and the populace alike.
+Deep recessions can be particularly costly to the populace as business downsizing and business failures during recessions generally result in a decrease in available jobs (increasing unemployment).
+However, if it was possible to predict a coming recession with some confidence, then it may be possible for business and the populace to prepare and mitigate losses.
+
+We propose to model the change in GDP for the United States to attempt to predict recessions.
+A working definition of a recession is two consecutive quarters of decrease in GDP [1].
+Thus, we will use a 2-step ahead forecast in evaluating models.
+Eleven years (44 quarters) will be used for training models to predict the next 2 quarters.
+
+# Data
+
+All data was collected from [Federal Reserve Economic Data (FRED) Repository](https://fred.stlouisfed.org/),
+which is provided by the Federal Reserve Bank of Saint Louis.
+In addition to quarterly change in GDP, 18 exogenous variables were also collected.
+The data from 116 quarters (from 1990 to 2019) were collected.
+
+The exogenous variables are summerized in the table below.
+
+| Variable | Description | FRED ID |
+|----------|-------------|---------|
+| Date     | Date of observation | N/A |
+| gdp_change | Change in GDP from the previous observation | A191RP1Q027SBEA |
+| unrate   | Unemployment rate | UNRATE |
+| nfjobs   | Non-farming jobs  | PAYEMS | 
+| treas10yr | 10 Year US treasury constant maturity rate | DGS10 |
+| fedintrate | US federal interest rate | FEDFUNDS |
+| personincomechg | Change in real disposable personal income | A067RO1Q156NBEA |
+| cpichg | Change in Consumer Price Index for all urban consumers: all ttems in U.S. city average | CPIAUCNS |
+| popchg | Change in Population | POPTHM |
+| corpprofitchg | Change in Corporate profits after tax (converted to percent change) | CP |
+| crude_wtichg | Change in Spot Crude Oil Price: West Texas Intermediate | WTISPLC |
+| goldchg | Change in Gold Fixing Price 10:30 A.M. (London time) in london bullion market, based in U.S. Dollars | GOLDAMGBD228NLBM |
+| ppichg | Change in Producer price index | PPIACO |
+| japanchg | Change in US/Japan exchange rate | EXJPUS | 
+| ukchg | Change in US/UK exchange rate | EXUSUK |
+| wilshirechg | Change in Wilshire 5000 Total Market Full Cap Index | WILL5000INDFC |
+| ipichg | Change in Industrial Production Index | INDPRO |
+| inventorieschg | Change in Real Manufacturing and Trade Inventories | INVCMRMTSPL |
+| homeownership | Cahnge in Homeownership Rate for the United States | RHORUSQ156N |
+| housingpermitschg | Change in New Private Housing Units Authorized by Building Permits | PERMIT |
 
 ```{r}
-# shorten analysis to data beyond 75
-
 data %>% glimpse()
 x = data$gdp_change
 ```
+
+# Response Variable
+
+The response variable is change in GDP, denoted as `gdp_change`.
+The realization, sample autocorrelations, and Parzen window are shown below.
+The realization appears to express wandering behavior with some oscillation.
+Based on the sample aucorrelations, wandering appears to be the dominate behavior.
+The oscillations do not appear to be expressed strongly in the sample autocorrelations.
+This is consisent with the Parzen window, which shows a dominate frequency at 0.
+The other frequencies shown in the parzen window have very low magnitudes.
 
 ```{r}
 px = plotts.sample.wge(x)
 ```
 
+# Modeling
+
 ## Stationarity
 
-```{r}
-tswgewrapped::check_stationarity(x)
+We start the analysis with an assessment of startionarity of the realization.
+
+```{r, message=FALSE, warning=FALSE}
+check_stationarity(x)
 ```
 
-### Condition 1
+### Condition 1: Constant Mean
 
-* There does not appear to be evidence of the mean changing over time.
+* There does not appear to be evidence of a trend in the data.
+* Additionaly there does not appear to be any kind of deterministic oscillation in the data
 
+Therefore, the assumption of constant mean does not appear to be violated.
 
-### Condition 2
+### Condition 2: Constant Variance
 
-There does not apprear to be evidence of the variance of the realization changing over time.
-the drastic change at time step 75 maybe uncharacterisic of the process generating this realization, but it is difficult to determine with only one realization.
+* There does not apprear to be evidence of the variance of the realization changing over time.
+* the drastic change at time step 75 maybe uncharacterisic of the process generating this realization, but it is difficult to determine with only one realization. This could be normal wandering behavior of the process generating this realization.
 
-### Condition 3
+Therefore, the assumption of constant variance does not appear to be violated.
+
+### Condition 3: Constant Autocorrelation
 
 The ACF of the first and second half of the realization appear to exhibit similar behavior.
 However, the autocorrelations have very low magnitudes - most of the autocorrelations do not appear to be significantly different than 0.
 
+Therefore, the assumption of constant autocorrelation does not appear to be violated.
 
 ### Conclusion
 
-* Given the above analysis, the realization appears to have been produced by a stationary process.
+Given the above analysis, there does not appear to be sufficient evidence to suggest that the process generating the realization is not stationary.
+We will continue the ananlysis assuming the process generating the realization is stationary.
 
 ## ARMA Model
 
-Given the analysis above, we will model it as stationary.
+Since the process generating the realization is assumed to be stationary, we will model this realization with an ARMA model.
 
 ### Model ID
 
 ```{r}
-aicbic(x, 0:12, 0:3)
+aicbic(x, 0:12, 0:3, silent = TRUE)
 ```
 
 Both AIC and BIC select low order models with an ARMA(2,0) selected as the best ID by both criteria.
@@ -92,8 +162,11 @@ est.s <- est.arma.wge(x, 2, 0)
 The results from the model fit appear to be nearly consisent with white noise.
 The resulting realization appears very close to white noise.
 Several of the autocorrelations of the results are marginally significant, which is more than expected.
+As secondary evaluation, the Ljung-Box test does not reject the null hypothesis that residuals are white noise at K = 24, but does reject the null hypothesis at K = 48.
+However, all the models selected by AIC and BIC show a similar behavior.
 
-```{r}
+```{r, message=FALSE}
+# evaluate residuals of arma model
 tswgewrapped::evaluate_residuals(est.s$res)
 ```
 
@@ -101,7 +174,8 @@ tswgewrapped::evaluate_residuals(est.s$res)
 ### Forecast Results
 
 
-```{r}
+```{r, results='hide'}
+# setup object with unitvariate model
 models = list("ARMA(2,1)" = list(phi = est.s$phi,
                                   theta = est.s$theta,
                                   vara = est.s$avar,
@@ -115,30 +189,49 @@ mdl_compare = tswgewrapped::ModelCompareUnivariate$new(data = x, mdl_list = mode
 The model appears to capture the movement of the mean with 2-step ahead forecasts.
 The model is unable to capture the steap dip near time step 75.
 Generally, the realization is contained in the forecast limits of the model, but the realization does not exhibit significant wandering.
+The sliding window ASE shows that the model performs badly near the extreme step.
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
+# show sliding window forecasts
 mdl_compare$plot_batch_forecasts(only_sliding = TRUE)
 ```
 
-The sliding window ASE shows that the model performs badly near the extreme step.
+The histogram of ASEs from the sliding window shows that the errors are generally below 10.
+However, there are a few exteme values with on above 80.
 
 ```{r}
+# show the distribution of ASEs
+mdl_compare$plot_histogram_ases()
+```
+
+Viewing the rolling window ASE over time, we see that the most extreme value occurs at the same location as the extreme value.
+This is not surprising since an ARMA model will tend toward the mean and this value is far from the window mean.
+
+```{r, message=FALSE, warning=FALSE}
+# show ASE over time (windows)
 mdl_compare$plot_batch_ases(only_sliding = TRUE)
 ```
 
-## VAR Modeling
+```{r}
+
+```
+
+
+
+## VAR Model
 
 ### CCF Analysis
 
 
 ```{r}
-
+# Use max lag of 12
 lag.max = 12
-
+# set the response variable
 var_interest = 'gdp_change'
 
+# plot the cross correlations between the response variable and the other variables
 for (name in colnames(data)){
-  # By convention, the X2 variable comes first
+  # By convention, the X2 variable comes first, the response comes second
   c = ccf(data[name], data[var_interest], lag.max = lag.max)
   index = which(abs(c$acf[,1,1]) == max(abs(c$acf[,1,1])))
   max_ccf = c$lag[,1,1][index] 
@@ -149,12 +242,194 @@ for (name in colnames(data)){
 Subset to variables that may be useful given cross-correlations.
 
 ```{r}
+# Subset data to most intersting variables
 data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
                                  fedintrate, cpichg, inventorieschg, ppichg, popchg,
                                  homeownership, corpprofitchg, personincomechg, housingpermitschg,
                                  japanchg))
 ```
 
+
+
+
+### Modeling
+
+Initially we attempted to select models starting with all the variables and removing statistially insiginificant variables.
+However, this resulted in models that appeared to be very overfit.
+For more details see *VAR Modeling with Backward Feature Selection* in the appendix.
+
+We continued by starting with no variables in the model and visualizing the forecast at each variable addition to determine if the model appeared to overfit.
+This resulted in a much smaller model.
+The constant term was found to be significant, but the trend term was not significant. 
+Thus, we only fit models with the constant term.
+
+The models selected contained the variables `housingpermitschg` and `inventorieschg`.
+
+```{r, message=FALSE, results='hide'}
+# Use max lag of 12
+lag.max = 12
+# construct VAR model with type const and variables 'housingpermitschg', 'inventorieschg'
+models = list("VARS AIC Both"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'housingpermitschg', 'inventorieschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+
+#mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.both <- mdl_build$get_final_models(subset = 'r')
+
+# construct VAR model with type const and variable 'inventorieschg'
+models = list("VARS AIC Inven"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'inventorieschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+
+#mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.inven <- mdl_build$get_final_models(subset = 'r')
+
+# construct VAR model with type const and variable 'housingpermitschg'
+models = list("VARS AIC HousePerm"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+
+#mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.housperm <- mdl_build$get_final_models(subset = 'r')
+
+# combine models in a list
+models <- append(model.both, model.inven)
+models <- append(models, model.housperm)
+
+# set models to use sliding window ASE
+for (name in names(models)){
+  models[[name]][['sliding_ase']] = TRUE
+}
+
+# set the batch size (window) and forecast horizon
+batch_size = 44
+n.ahead = 2
+
+# run model comparison
+mdl_compare = ModelCompareMultivariateVAR$new(data = data, var_interest = var_interest,
+                                              mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
+
+```
+
+```{r}
+# show forecasts on batches
+mdl_compare$plot_batch_forecasts()
+# show distributions of ASEs
+mdl_compare$plot_histogram_ases()
+```
+
+
+It is difficult to determine when models appear to perform well based on the plot of the rolling forecasts.
+However, there appears to be some evidence that the forecast lags the behavior of the realization.
+While there are several instances where this behvaior can be seen, it is particularly evident when the realization dips suddenly near time step 75.
+The models forecast a dip in the next time step.
+
+Like the univariate models, these VAR models appear generally tend to capture the movement of the realization within the forecast intervals.
+
+From the plot of the rolling ASE, the model containing only `inventorieschg` appears to perform best.
+The ASE appears to be lower on average over the windows with the spread of the main distribution also being lower than the other two models.
+The outliers of the ASE plot also appear to be as extreme or less extreme than the other two models.
+
+## Neural Network Model
+
+### Hyperparameter Grid Search
+
+All of the data is used in the neural network.
+We ran the neural network with different sets of variables and the performance appeared to decrease when varaibles were removed - 
+see *Neural Networks with Sets of Regressors* in the appedix for more details.
+A grid search is performed over number of repetitions, the number of hidden layers, and whether seasonality is allowed.
+
+```{r}
+data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")[80:195, ]
+data <- data %>% select(-date)
+```
+
+
+```{r, results='hide'}
+# setup search grid
+nnfor_grid = expand.grid(reps = c(15, 25, 35, 45),
+                         hd = c(1:7),
+                         allow.det.season = c(FALSE, TRUE))
+# search for best NN hyperparameters in given grid
+model = ModelBuildNNforCaret$new(data = data, var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 grid = nnfor_grid,
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+#model$summarize_hyperparam_results()
+#model$summarize_build()
+
+#nnfor_model = model$get_final_models(subset = 'r')
+#nfor_model
+
+temp <- model$summarize_best_hyperparams()
+res <- model$summarize_hyperparam_results()
+final.ase <- filter(res, reps == temp$reps &
+                      hd == temp$hd &
+                      allow.det.season == temp$allow.det.season)[['ASE']]
+```
+
+The ASE associated with the grid of hyperparameters is shown in the heatmap below.
+The panel (True/False) is for the seasonality option.
+Seasonality does not appear to have an affect on ASE.
+However, the combination of number of hidden layers and number of repetitions strongly affects the ASE.
+The best hyperparameters based on this grid search are 15 repetitions and 3 hidden layers, which has a rolling window ASE of `r final.ase`.
+
+```{r}
+model$plot_hyperparam_results()
+```
+
+The best hyperparemeters are shown below
+
+```{r}
+model$summarize_best_hyperparams()
+```
+
+## Ensemble Mode
+
+## Comparison
+
+## Conclusion
+
+# References
+
+ 1. Jim Chappelow, Recession,  Investopedia. Accessed March 6, 2020. https://www.investopedia.com/terms/r/recession.asp
+ 2. U.S. Bureau of Economic Analysis, Gross Domestic Product [A191RP1Q027SBEA], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/A191RP1Q027SBEA, March 6, 2020.
+ 3. U.S. Bureau of Labor Statistics, All Employees, Total Nonfarm [PAYEMS], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/PAYEMS, March 6, 2020.
+ 4. Board of Governors of the Federal Reserve System (US), 10-Year Treasury Constant Maturity Rate [DGS10], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/DGS10, March 6, 2020.
+ 5. Board of Governors of the Federal Reserve System (US), Effective Federal Funds Rate [FEDFUNDS], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/FEDFUNDS, March 6, 2020.
+ 6. U.S. Bureau of Economic Analysis, Real Disposable Personal Income [A067RO1Q156NBEA], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/A067RO1Q156NBEA, March 6, 2020.
+ 7. U.S. Bureau of Labor Statistics, Consumer Price Index for All Urban Consumers: All Items in U.S. City Average [CPIAUCNS], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/CPIAUCNS, March 6, 2020.
+ 8. U.S. Bureau of Economic Analysis, Population [POPTHM], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/POPTHM, March 6, 2020.
+ 9. U.S. Bureau of Economic Analysis, Corporate Profits After Tax (without IVA and CCAdj) [CP], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/CP, March 6, 2020.
+ 10. Federal Reserve Bank of St. Louis, Spot Crude Oil Price: West Texas Intermediate (WTI) [WTISPLC], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/WTISPLC, March 6, 2020.
+ 11. ICE Benchmark Administration Limited (IBA), Gold Fixing Price 10:30 A.M. (London time) in London Bullion Market, based in U.S. Dollars [GOLDAMGBD228NLBM], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/GOLDAMGBD228NLBM, March 6, 2020.
+ 12. Board of Governors of the Federal Reserve System (US), Japan / U.S. Foreign Exchange Rate [EXJPUS], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/EXJPUS, March 6, 2020.
+ 13. Board of Governors of the Federal Reserve System (US), U.S. / U.K. Foreign Exchange Rate [EXUSUK], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/EXUSUK, March 6, 2020.
+ 14. Wilshire Associates, Wilshire 5000 Total Market Full Cap Index [WILL5000INDFC], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/WILL5000INDFC, March 26, 2020.
+ 15. Federal Reserve Bank of St. Louis, Real Manufacturing and Trade Inventories [INVCMRMTSPL], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/INVCMRMTSPL, March 26, 2020.
+ 16. U.S. Census Bureau and U.S. Department of Housing and Urban Development, New Private Housing Units Authorized by Building Permits [PERMIT], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/PERMIT, March 26, 2020.
+ 17. U.S. Census Bureau, Homeownership Rate for the United States [RHORUSQ156N], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/RHORUSQ156N, March 26, 2020.
+ 18. Board of Governors of the Federal Reserve System (US), Industrial Production Index [INDPRO], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/INDPRO, March 26, 2020.
+
+# Appendix
+
+## VAR Modeling with Backward Feature Selection
+
+### VAR with `trend_type = Trend`
+
+**Iteration 1**
+
+Starting with all variables with non-zero cross-correlation and max lag of 12.
 
 ```{r}
 lag.max = 12
@@ -163,6 +438,423 @@ mdl_build = ModelBuildMultivariateVAR$new(data = data, var_interest = var_intere
                                             mdl_list = models, verbose = 1)
 mdl_build$summarize_build()
 ```
+
+The recommended model as a lag of 7 and most variables are not significant in the model.
+Additionally, trend is not significant in the model.
+
+**Iteration 2**
+
+Variable `japanchg` is removed and max lags remains at 12.
+
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Trend"    = list(select = "aic", trend_type = "trend", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+All varaibles are now significant in the model.
+Trend is still not significant at the 0.05 level, but it is marginal.
+
+**Iteration 3**
+
+The max lag to test is reduced to 7.
+
+```{r}
+lag.max = 7
+models = list("VARS AIC Trend"    = list(select = "aic", trend_type = "trend", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.trend <- mdl_build$get_final_models(subset = 'r')
+```
+
+The recommended model remains the same as the previous model.
+
+### VAR with `trend_type = Both`
+
+**Iteration 1**
+
+Starting with all variables with non-zero cross-correlation and max lag of 12.
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Both"    = list(select = "aic", trend_type = "both", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data,
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+The recommended model as a lag of 7 and most variables are not significant in the model.
+Additionally, trend and const are not significant in the model.
+
+**Iteration 2**
+
+Variable `japanchg` is removed and max lags remains at 12.
+
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Both"    = list(select = "aic", trend_type = "both", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+All varaibles are now significant in the model.
+Trend and const are not significant in the model
+
+**Iteration 3**
+
+The max lag to test is reduced to 7.
+
+```{r}
+lag.max = 7
+models = list("VARS AIC Both"    = list(select = "aic", trend_type = "both", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.both <- mdl_build$get_final_models(subset = 'r')
+```
+
+The recommend model is the same as the previous model.
+
+### VAR with `trend_type = Const`
+
+**Iteration 1**
+
+Starting with all variables with non-zero cross-correlation and max lag of 12.
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Const"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data,
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+The recommended model as a lag of 7 and most variables are not significant in the model.
+Additionally, const is not significant in the model.
+
+**Iteration 2**
+
+Variable `japanchg` is removed and max lags remains at 12.
+
+
+```{r}
+lag.max = 12
+models = list("VARS AIC Const"    = list(select = "aic", trend_type = "both", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+All varaibles are now significant in the model.
+Const is not significant in the model
+
+**Iteration 3**
+
+The max lag to test is reduced to 7.
+
+```{r}
+lag.max = 7
+models = list("VARS AIC Const"    = list(select = "aic", trend_type = "both", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.const <- mdl_build$get_final_models(subset = 'r')
+```
+
+The recommend model is the same as the previous model.
+
+### VAR with `trend_type = None`
+
+
+
+```{r}
+lag.max = 12
+models = list("VARS AIC None"    = list(select = "aic", trend_type = "none", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data = data,
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+
+```{r}
+lag.max = 12
+models = list("VARS AIC None"    = list(select = "aic", trend_type = "none", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+```
+
+```{r}
+lag.max = 7
+models = list("VARS AIC None"    = list(select = "aic", trend_type = "none", lag.max = lag.max))
+mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')],
+                                          var_interest = var_interest,
+                                            mdl_list = models, verbose = 1)
+mdl_build$summarize_build()
+mdl_build$build_recommended_models()
+model.none <- mdl_build$get_final_models(subset = 'r')
+```
+
+The recommended model is the same as the previous model.
+
+### Compare Models
+
+Three models show much higher error than the model with trend type of none.
+However, this model still has very large errors compared to the univariate models.
+
+```{r}
+models <- append(model.both, model.const)
+models <- append(models, model.none)
+models <- append(models, model.trend)
+
+for (name in names(models)){
+  models[[name]][['sliding_ase']] = TRUE
+}
+
+batch_size = 44
+n.ahead = 2
+
+mdl_compare = ModelCompareMultivariateVAR$new(data = data, var_interest = var_interest,
+                                              mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
+
+
+mdl_compare$plot_batch_forecasts()
+mdl_compare$plot_histogram_ases()
+```
+
+Rerun the comparison with the noisy models removed.
+
+```{r}
+mdl_compare$remove_models(c("VARS AIC Const - R",
+                            "VARS AIC Both - R",
+                            "VARS AIC Trend - R"))
+
+mdl_compare$plot_batch_forecasts()
+mdl_compare$plot_histogram_ases()
+```
+
+## Neural Networks with Sets of Regressors
+
+It is difficult to determine which exogeneous variables should be included in the model.
+We will see the impact by just random removing variables until no variables are left.
+Remove a random variable until only one variable is left in the model.
+
+**Results Summary**
+
+Essential the ASE appears to increase when variables are removed from the model.
+Based on this, we will fit the neural network with all the variables in the model.
+
+## Iteration 1
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg', 'housingpermitschg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 2
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg', 'personincomechg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 3
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'corpprofitchg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+
+## Iteration 5
+
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership', 'personincomechg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 5
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg',
+                                                           'homeownership')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 6
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'fedintrate', 'cpichg', 'inventorieschg', 'ppichg', 'popchg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 7
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ipichg', 'treas10yr',
+                                                           'cpichg', 'inventorieschg', 'ppichg', 'popchg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 8
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'ipichg', 'treas10yr',
+                                                           'cpichg', 'inventorieschg', 'ppichg', 'popchg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 9
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'ipichg', 'treas10yr',
+                                                           'cpichg', 'inventorieschg', 'popchg')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
+## Iteration 10
+
+```{r}
+
+model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'homeownership')], 
+                                 var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+model$summarize_hyperparam_results()
+model$plot_hyperparam_results()
+```
+
 
 
 
