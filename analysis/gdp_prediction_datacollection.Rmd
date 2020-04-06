@@ -390,8 +390,8 @@ dfs = list(gdp_change = gdp_change,
            labor_unrate = unrate,
            labor_nfjobschg = nfjobschg,
            monitory_treas10yr = treas10yr,
-           # monitory_treas3mo = treas3mo,
-           # monitory_treas10yr3mo = treas10yr3mo,
+           monitory_treas3mo = treas3mo,
+           monitory_treas10yr3mo = treas10yr3mo,
            monitory_fedintrate = fedintrate,
            # monitory_libor3mo = libor3mo,
            consumer_personincomechg = personincomechg,
@@ -437,7 +437,7 @@ tail(data)
 * So we may need to change the gdp column to a lagged gdp column (for next quarter). We will evaluate how to do this.
 
 ```{r}
-write.csv(data, "../data/economic_indicators_all_ex_3mo_china.csv", row.names = FALSE)
+write.csv(data, "../data/economic_indicators_all_ex_3mo_china_inc_treas3mo.csv", row.names = FALSE)
 ```
 
 # TODO

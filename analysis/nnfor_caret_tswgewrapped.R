@@ -34,7 +34,11 @@ model = ModelBuildNNforCaret$new(data = data %>% select(-date), var_interest = "
                                  batch_size = 195, h = 2,
                                  parallel = TRUE,
                                  seed = 1,
-                                 verbose = 1)
+                                 verbose = 1,
+                                 lags = 1:4,
+                                 keep = c(TRUE, FALSE, FALSE, TRUE),
+                                 difforder = c(1))
+                                 #xreg.lags = list(1:2, 1:2, 1:2))
 
 
 model$summarize_hyperparam_results()
@@ -71,7 +75,7 @@ nnfor_grid = expand.grid(reps = c(20, 50),
 model = ModelBuildNNforCaret$new(data = data %>% select(-date), var_interest = "gdp_change", m = 6,
                                  search = 'grid',
                                  grid = nnfor_grid,
-                                 batch_size = 195, h = 2,
+                                 batch_size = 191, h = 2,
                                  parallel = TRUE,
                                  seed = 1,
                                  verbose = 1)
