@@ -27,7 +27,7 @@ library(tswgewrapped)
 library(tidyverse)
 library(ggplot2)
 library(tseries)
-data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")[80:195, ]
+data = read.csv("../data/economic_indicators_all_ex_3mo_china_inc_treas3mo.csv")[1:151, ]
 ```
 
 
@@ -49,7 +49,8 @@ Eleven years (44 quarters) will be used for training models to predict the next 
 All data was collected from [Federal Reserve Economic Data (FRED) Repository](https://fred.stlouisfed.org/),
 which is provided by the Federal Reserve Bank of Saint Louis.
 In addition to quarterly change in GDP, 18 exogenous variables were also collected.
-The data from 116 quarters (from 1990 to 2019) were collected.
+The data from 151 quarters (from 1982 Q1 to 2019 Q3) were collected.
+The data starts at 1982 Q1 because that was the earliest observation available for `treas10yr3mo`.
 
 The exogenous variables are summerized in the table below.
 
@@ -75,6 +76,7 @@ The exogenous variables are summerized in the table below.
 | inventorieschg | Change in Real Manufacturing and Trade Inventories | INVCMRMTSPL |
 | homeownership | Cahnge in Homeownership Rate for the United States | RHORUSQ156N |
 | housingpermitschg | Change in New Private Housing Units Authorized by Building Permits | PERMIT |
+| treas10yr3mo | 10-Year Treasury Constant Maturity Minus 3-Month Treasury Constant Maturity | T10Y3M |
 
 ```{r}
 data %>% glimpse()
@@ -92,6 +94,7 @@ This is consisent with the Parzen window, which shows a dominate frequency at 0.
 The other frequencies shown in the parzen window have very low magnitudes.
 
 ```{r}
+var_interest <- 'gdp_change'
 px = plotts.sample.wge(x)
 ```
 
@@ -147,7 +150,7 @@ The following models are selected by both criteria:
 * ARMA(2,0)
 * ARMA(1,1)
 * ARMA(2,1)
-* ARMA(3,0)
+* ARMA(1,2)
 
 
 ### Model Fit
@@ -156,13 +159,13 @@ An ARMA(2,0) was fit based on the model ID from AIC and BIC.
 The factor table for the estimated model does not show roots near the unit circle.
 
 ```{r}
-est.s <- est.arma.wge(x, 2, 0)
+est.s <- est.arma.wge(x, 2, 1)
 ```
 
 The results from the model fit appear to be nearly consisent with white noise.
 The resulting realization appears very close to white noise.
-Several of the autocorrelations of the results are marginally significant, which is more than expected.
-As secondary evaluation, the Ljung-Box test does not reject the null hypothesis that residuals are white noise at K = 24, but does reject the null hypothesis at K = 48.
+Several of the autocorrelations of the results are marginally significant, but not more than expected.
+As secondary evaluation, the Ljung-Box test does not reject the null hypothesis that residuals are not white noise.
 However, all the models selected by AIC and BIC show a similar behavior.
 
 ```{r, message=FALSE}
@@ -176,7 +179,7 @@ tswgewrapped::evaluate_residuals(est.s$res)
 
 ```{r, results='hide'}
 # setup object with unitvariate model
-models = list("ARMA(2,1)" = list(phi = est.s$phi,
+models = list("ARMA(2,0)" = list(phi = est.s$phi,
                                   theta = est.s$theta,
                                   vara = est.s$avar,
                                   res = est.s$res,
@@ -212,41 +215,46 @@ This is not surprising since an ARMA model will tend toward the mean and this va
 mdl_compare$plot_batch_ases(only_sliding = TRUE)
 ```
 
-```{r}
-
-```
-
-
 
 ## VAR Model
 
+### Explanatory Variables
+
+The realizations of the exogeneous variables are shown below.
+
+```{r, fig.width=10}
+eda <- MultivariateEDA$new(data = data, var_interest = "gdp_change", var_time = "date")
+eda$plot_data(ncol = 3)
+```
+
+
+
 ### CCF Analysis
 
+**Summary**
 
-```{r}
-# Use max lag of 12
-lag.max = 12
-# set the response variable
-var_interest = 'gdp_change'
+The significant cross correlations of the variable `popchg` lags the response variable.
+The following variables do no have significant cross correlations with the response variable:
+`corpprofitchg`, `japanchg`, `japanchg`, `crude_wtchg`, `goldchg`, and `ukchg`.
+All other variables appear to have significant cross correlations and will be included as exogeneous variables.
 
-# plot the cross correlations between the response variable and the other variables
-for (name in colnames(data)){
-  # By convention, the X2 variable comes first, the response comes second
-  c = ccf(data[name], data[var_interest], lag.max = lag.max)
-  index = which(abs(c$acf[,1,1]) == max(abs(c$acf[,1,1])))
-  max_ccf = c$lag[,1,1][index] 
-  cat(paste("\nFor variable: ", name, " , max cross-correlation is at lag: ", max_ccf, sep = ""))
-}
+Plots of the CCF are shown below.
+
+```{r, message=FALSE}
+ccf <- eda$plot_ccf_analysis(negative_only = TRUE)
 ```
+
 
 Subset to variables that may be useful given cross-correlations.
 
 ```{r}
 # Subset data to most intersting variables
 data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
-                                 fedintrate, cpichg, inventorieschg, ppichg, popchg,
-                                 homeownership, corpprofitchg, personincomechg, housingpermitschg,
-                                 japanchg))
+                                 fedintrate, cpichg, inventorieschg, ppichg,
+                                 homeownership, personincomechg, housingpermitschg,
+                                 treas10yr3mo, wilshirechg, ipichg))
+
+
 ```
 
 
@@ -346,7 +354,7 @@ see *Neural Networks with Sets of Regressors* in the appedix for more details.
 A grid search is performed over number of repetitions, the number of hidden layers, and whether seasonality is allowed.
 
 ```{r}
-data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")[80:195, ]
+data <- read.csv("../data/economic_indicators_all_ex_3mo_china_inc_treas3mo.csv")[1:151, ]
 data <- data %>% select(-date)
 ```
 
@@ -382,7 +390,7 @@ The ASE associated with the grid of hyperparameters is shown in the heatmap belo
 The panel (True/False) is for the seasonality option.
 Seasonality does not appear to have an affect on ASE.
 However, the combination of number of hidden layers and number of repetitions strongly affects the ASE.
-The best hyperparameters based on this grid search are 15 repetitions and 3 hidden layers, which has a rolling window ASE of `r final.ase`.
+The best hyperparameters based on this grid search are 25 repetitions and 4 hidden layers, which has a mean rolling window ASE of `r final.ase`.
 
 ```{r}
 model$plot_hyperparam_results()
@@ -396,7 +404,18 @@ model$summarize_best_hyperparams()
 
 ## Ensemble Mode
 
+
+
 ## Comparison
+
+```{r}
+#mdl_combine = ModelCombine$new(data = data, var_interest = var_interest,
+#                               uni_models = mdl_compare_uni, 
+#                               var_models = mdl_compare_var, 
+#                               mlp_models = mdl_compare_mlp,
+#                               verbose = 1)
+```
+
 
 ## Conclusion
 
@@ -420,6 +439,7 @@ model$summarize_best_hyperparams()
  16. U.S. Census Bureau and U.S. Department of Housing and Urban Development, New Private Housing Units Authorized by Building Permits [PERMIT], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/PERMIT, March 26, 2020.
  17. U.S. Census Bureau, Homeownership Rate for the United States [RHORUSQ156N], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/RHORUSQ156N, March 26, 2020.
  18. Board of Governors of the Federal Reserve System (US), Industrial Production Index [INDPRO], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/INDPRO, March 26, 2020.
+ 19. Federal Reserve Bank of St. Louis, 10-Year Treasury Constant Maturity Minus 3-Month Treasury Constant Maturity [T10Y3M], retrieved from FRED, Federal Reserve Bank of St. Louis; https://fred.stlouisfed.org/series/T10Y3M, March 26, 2020.
 
 # Appendix
 
@@ -432,6 +452,12 @@ model$summarize_best_hyperparams()
 Starting with all variables with non-zero cross-correlation and max lag of 12.
 
 ```{r}
+data = read.csv("../data/economic_indicators_all_ex_3mo_china.csv")[80:195, ]
+data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
+                                 fedintrate, cpichg, inventorieschg, ppichg, popchg,
+                                 homeownership, corpprofitchg, personincomechg, housingpermitschg,
+                                 japanchg))
+
 lag.max = 12
 models = list("VARS AIC Trend"    = list(select = "aic", trend_type = "trend", lag.max = lag.max))
 mdl_build = ModelBuildMultivariateVAR$new(data = data, var_interest = var_interest,
@@ -641,18 +667,13 @@ However, this model still has very large errors compared to the univariate model
 models <- append(model.both, model.const)
 models <- append(models, model.none)
 models <- append(models, model.trend)
-
 for (name in names(models)){
   models[[name]][['sliding_ase']] = TRUE
 }
-
 batch_size = 44
 n.ahead = 2
-
 mdl_compare = ModelCompareMultivariateVAR$new(data = data, var_interest = var_interest,
                                               mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
-
-
 mdl_compare$plot_batch_forecasts()
 mdl_compare$plot_histogram_ases()
 ```
@@ -663,7 +684,6 @@ Rerun the comparison with the noisy models removed.
 mdl_compare$remove_models(c("VARS AIC Const - R",
                             "VARS AIC Both - R",
                             "VARS AIC Trend - R"))
-
 mdl_compare$plot_batch_forecasts()
 mdl_compare$plot_histogram_ases()
 ```
