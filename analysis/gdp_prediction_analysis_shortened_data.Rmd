@@ -185,7 +185,7 @@ models = list("ARMA(2,0)" = list(phi = est.s$phi,
                                   res = est.s$res,
                                   sliding_ase = TRUE))
 
-mdl_compare = tswgewrapped::ModelCompareUnivariate$new(data = x, mdl_list = models,
+mdl_compare_uni = tswgewrapped::ModelCompareUnivariate$new(data = x, mdl_list = models,
                                                        n.ahead = 2, batch_size = 44)
 ```
 
@@ -204,7 +204,7 @@ However, there are a few exteme values with on above 80.
 
 ```{r}
 # show the distribution of ASEs
-mdl_compare$plot_histogram_ases()
+mdl_compare$plot_boxplot_ases()
 ```
 
 Viewing the rolling window ASE over time, we see that the most extreme value occurs at the same location as the extreme value.
@@ -320,16 +320,16 @@ batch_size = 44
 n.ahead = 2
 
 # run model comparison
-mdl_compare = ModelCompareMultivariateVAR$new(data = data, var_interest = var_interest,
+mdl_compare_var = ModelCompareMultivariateVAR$new(data = data, var_interest = var_interest,
                                               mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
 
 ```
 
 ```{r}
 # show forecasts on batches
-mdl_compare$plot_batch_forecasts()
+mdl_compare_var$plot_batch_forecasts()
 # show distributions of ASEs
-mdl_compare$plot_histogram_ases()
+mdl_compare_var$plot_boxplot_ases()
 ```
 
 
@@ -343,6 +343,12 @@ Like the univariate models, these VAR models appear generally tend to capture th
 From the plot of the rolling ASE, the model containing only `inventorieschg` appears to perform best.
 The ASE appears to be lower on average over the windows with the spread of the main distribution also being lower than the other two models.
 The outliers of the ASE plot also appear to be as extreme or less extreme than the other two models.
+We will select the VAR model containing on `inventorieschg` as an explanatory variable.
+
+```{r, results='hide'}
+mdl_compare_var$remove_models(c('VARS AIC Both - R', 'VARS AIC HousePerm - R'))
+```
+
 
 ## Neural Network Model
 
@@ -402,6 +408,23 @@ The best hyperparemeters are shown below
 model$summarize_best_hyperparams()
 ```
 
+```{r}
+# get back the final model
+caret_model = model$get_final_models()
+mdl_compare_nn = ModelCompareNNforCaret$new(data = data,
+                                         var_interest = var_interest,
+                                         mdl_list = caret_model,
+                                         verbose = 1)
+# plot the rolling window forecasts
+p = mdl_compare_nn$plot_batch_forecasts()
+```
+
+```{r}
+# plot the ASC over time
+p = mdl_compare_nn$plot_batch_ases() 
+```
+
+
 ## Ensemble Mode
 
 
@@ -409,11 +432,19 @@ model$summarize_best_hyperparams()
 ## Comparison
 
 ```{r}
-#mdl_combine = ModelCombine$new(data = data, var_interest = var_interest,
-#                               uni_models = mdl_compare_uni, 
-#                               var_models = mdl_compare_var, 
-#                               mlp_models = mdl_compare_mlp,
-#                               verbose = 1)
+# build compare model object
+mdl_combine = ModelCombine$new(data = data, 
+                               var_interest = var_interest,
+                               uni_models = mdl_compare_uni, 
+                               var_models = mdl_compare_var, 
+                               mlp_models = mdl_compare_nn,
+                               verbose = 1)
+# plot the distributions of ASE from the rolling windows
+mdl_combine$plot_boxplot_ases()
+```
+
+```{r}
+mdl_combine$plot_batch_forecasts()
 ```
 
 
