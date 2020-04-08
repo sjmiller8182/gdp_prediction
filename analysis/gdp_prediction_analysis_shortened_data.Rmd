@@ -27,6 +27,8 @@ library(tswgewrapped)
 library(tidyverse)
 library(ggplot2)
 library(tseries)
+library(kableExtra)
+library(knitr)
 data = read.csv("../data/economic_indicators_all_ex_3mo_china_inc_treas3mo.csv")[1:151, ]
 ```
 
@@ -42,7 +44,7 @@ However, if it was possible to predict a coming recession with some confidence, 
 We propose to model the change in GDP for the United States to attempt to predict recessions.
 A working definition of a recession is two consecutive quarters of decrease in GDP [1].
 Thus, we will use a 2-step ahead forecast in evaluating models.
-Eleven years (44 quarters) will be used for training models to predict the next 2 quarters.
+Eleven years (44 quarters) of historical data will be used for training models to predict the next 2 quarters.
 
 # Data
 
@@ -80,7 +82,6 @@ The exogenous variables are summerized in the table below.
 
 ```{r}
 data %>% glimpse()
-x = data$gdp_change
 ```
 
 # Response Variable
@@ -93,7 +94,8 @@ The oscillations do not appear to be expressed strongly in the sample autocorrel
 This is consisent with the Parzen window, which shows a dominate frequency at 0.
 The other frequencies shown in the parzen window have very low magnitudes.
 
-```{r}
+```{r, echo=FALSE}
+x = data$gdp_change
 var_interest <- 'gdp_change'
 px = plotts.sample.wge(x)
 ```
@@ -104,7 +106,7 @@ px = plotts.sample.wge(x)
 
 We start the analysis with an assessment of startionarity of the realization.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 check_stationarity(x)
 ```
 
@@ -141,16 +143,17 @@ Since the process generating the realization is assumed to be stationary, we wil
 ### Model ID
 
 ```{r}
+# get the top five models selected by AIC and BIC
 aicbic(x, 0:12, 0:3, silent = TRUE)
 ```
 
-Both AIC and BIC select low order models with an ARMA(2,0) selected as the best ID by both criteria.
+Both AIC and BIC select low order models with an ARMA(2, 0) selected as the best ID by both criteria.
 The following models are selected by both criteria:
 
-* ARMA(2,0)
-* ARMA(1,1)
-* ARMA(2,1)
-* ARMA(1,2)
+* ARMA(2, 0)
+* ARMA(1, 1)
+* ARMA(1, 2)
+* ARMA(2, 1)
 
 
 ### Model Fit
@@ -159,8 +162,11 @@ An ARMA(2,0) was fit based on the model ID from AIC and BIC.
 The factor table for the estimated model does not show roots near the unit circle.
 
 ```{r}
-est.s <- est.arma.wge(x, 2, 1)
+est.s <- est.arma.wge(x, 2, 0)
 ```
+
+(1-0.7391$B$)(1+0.3472$B$)($X_t$ - `r mean(data$gdp_change)`) = $a_t$ with $\sigma_a^2$ = `r est.s$avar`
+
 
 The results from the model fit appear to be nearly consisent with white noise.
 The resulting realization appears very close to white noise.
@@ -170,7 +176,11 @@ However, all the models selected by AIC and BIC show a similar behavior.
 
 ```{r, message=FALSE}
 # evaluate residuals of arma model
-tswgewrapped::evaluate_residuals(est.s$res)
+tbl <- tswgewrapped::evaluate_residuals(est.s$res)
+tbl %>%
+  select(-c(Model)) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
 
@@ -190,21 +200,21 @@ mdl_compare_uni = tswgewrapped::ModelCompareUnivariate$new(data = x, mdl_list = 
 ```
 
 The model appears to capture the movement of the mean with 2-step ahead forecasts.
-The model is unable to capture the steap dip near time step 75.
+The model is unable to capture the steap dip near time step 100.
 Generally, the realization is contained in the forecast limits of the model, but the realization does not exhibit significant wandering.
 The sliding window ASE shows that the model performs badly near the extreme step.
 
 ```{r, message=FALSE, warning=FALSE}
 # show sliding window forecasts
-mdl_compare$plot_batch_forecasts(only_sliding = TRUE)
+tbl <- mdl_compare_uni$plot_batch_forecasts(only_sliding = TRUE)
 ```
 
 The histogram of ASEs from the sliding window shows that the errors are generally below 10.
-However, there are a few exteme values with on above 80.
+However, there are a few exteme values with one above 60.
 
 ```{r}
 # show the distribution of ASEs
-mdl_compare$plot_boxplot_ases()
+tbl <- mdl_compare_uni$plot_boxplot_ases()
 ```
 
 Viewing the rolling window ASE over time, we see that the most extreme value occurs at the same location as the extreme value.
@@ -212,7 +222,7 @@ This is not surprising since an ARMA model will tend toward the mean and this va
 
 ```{r, message=FALSE, warning=FALSE}
 # show ASE over time (windows)
-mdl_compare$plot_batch_ases(only_sliding = TRUE)
+tbl <- mdl_compare_uni$plot_batch_ases(only_sliding = TRUE)
 ```
 
 
@@ -238,10 +248,18 @@ The following variables do no have significant cross correlations with the respo
 `corpprofitchg`, `japanchg`, `japanchg`, `crude_wtchg`, `goldchg`, and `ukchg`.
 All other variables appear to have significant cross correlations and will be included as exogeneous variables.
 
+We suspect that `nfjobschg`, `ipichg`, `treas10yr`, `fedintrate`, `cpichg`, `inventorieschg`, `ppichg`, `homeownership`, `personincomechg`, `housingpermitschg`, `treas10yr3mo`, `wilshirechg`, `ipichg` will be useful given the cross-correlations.
+
 Plots of the CCF are shown below.
 
 ```{r, message=FALSE}
+# plot the ccfs and get back the ccf table
 ccf <- eda$plot_ccf_analysis(negative_only = TRUE)
+# show the ccf table
+ccf %>%
+  select(-c(max_ccf_index_adjusted)) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
 
@@ -253,8 +271,6 @@ data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
                                  fedintrate, cpichg, inventorieschg, ppichg,
                                  homeownership, personincomechg, housingpermitschg,
                                  treas10yr3mo, wilshirechg, ipichg))
-
-
 ```
 
 
@@ -273,7 +289,7 @@ Thus, we only fit models with the constant term.
 
 The models selected contained the variables `housingpermitschg` and `inventorieschg`.
 
-```{r, message=FALSE, results='hide'}
+```{r, message=FALSE, results='hide', warning=FALSE}
 # Use max lag of 12
 lag.max = 12
 # construct VAR model with type const and variables 'housingpermitschg', 'inventorieschg'
@@ -325,11 +341,11 @@ mdl_compare_var = ModelCompareMultivariateVAR$new(data = data, var_interest = va
 
 ```
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 # show forecasts on batches
-mdl_compare_var$plot_batch_forecasts()
+tbl <- mdl_compare_var$plot_batch_forecasts()
 # show distributions of ASEs
-mdl_compare_var$plot_boxplot_ases()
+tbl <- mdl_compare_var$plot_boxplot_ases()
 ```
 
 
@@ -345,8 +361,8 @@ The ASE appears to be lower on average over the windows with the spread of the m
 The outliers of the ASE plot also appear to be as extreme or less extreme than the other two models.
 We will select the VAR model containing on `inventorieschg` as an explanatory variable.
 
-```{r, results='hide'}
-mdl_compare_var$remove_models(c('VARS AIC Both - R', 'VARS AIC HousePerm - R'))
+```{r, results='hide', warning=FALSE, message=FALSE, echo=FALSE}
+tbl <- mdl_compare_var$remove_models(c('VARS AIC Both - R', 'VARS AIC HousePerm - R'))
 ```
 
 
@@ -359,7 +375,7 @@ We ran the neural network with different sets of variables and the performance a
 see *Neural Networks with Sets of Regressors* in the appedix for more details.
 A grid search is performed over number of repetitions, the number of hidden layers, and whether seasonality is allowed.
 
-```{r}
+```{r, echo=FALSE}
 data <- read.csv("../data/economic_indicators_all_ex_3mo_china_inc_treas3mo.csv")[1:151, ]
 data <- data %>% select(-date)
 ```
@@ -408,9 +424,10 @@ The best hyperparemeters are shown below
 model$summarize_best_hyperparams()
 ```
 
+
 ```{r}
 # get back the final model
-caret_model = model$get_final_models()
+caret_model = model$get_final_models(subset = 'a')
 mdl_compare_nn = ModelCompareNNforCaret$new(data = data,
                                          var_interest = var_interest,
                                          mdl_list = caret_model,
@@ -706,7 +723,7 @@ n.ahead = 2
 mdl_compare = ModelCompareMultivariateVAR$new(data = data, var_interest = var_interest,
                                               mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
 mdl_compare$plot_batch_forecasts()
-mdl_compare$plot_histogram_ases()
+mdl_compare$plot_boxplot_ases()
 ```
 
 Rerun the comparison with the noisy models removed.
@@ -716,7 +733,7 @@ mdl_compare$remove_models(c("VARS AIC Const - R",
                             "VARS AIC Both - R",
                             "VARS AIC Trend - R"))
 mdl_compare$plot_batch_forecasts()
-mdl_compare$plot_histogram_ases()
+mdl_compare$plot_boxplot_ases()
 ```
 
 ## Neural Networks with Sets of Regressors
