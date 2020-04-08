@@ -144,7 +144,17 @@ Since the process generating the realization is assumed to be stationary, we wil
 
 ```{r}
 # get the top five models selected by AIC and BIC
-aicbic(x, 0:12, 0:3, silent = TRUE)
+aicbic.tables <- aicbic(x, 0:12, 0:3, silent = TRUE)
+
+# print the aic table
+catch[[1]] %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+# print the bic table
+catch[[2]] %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
 Both AIC and BIC select low order models with an ARMA(2, 0) selected as the best ID by both criteria.
@@ -401,6 +411,7 @@ model = ModelBuildNNforCaret$new(data = data, var_interest = "gdp_change", m = 6
 #nnfor_model = model$get_final_models(subset = 'r')
 #nfor_model
 
+
 temp <- model$summarize_best_hyperparams()
 res <- model$summarize_hyperparam_results()
 final.ase <- filter(res, reps == temp$reps &
@@ -421,20 +432,26 @@ model$plot_hyperparam_results()
 The best hyperparemeters are shown below
 
 ```{r}
-model$summarize_best_hyperparams()
+model$summarize_best_hyperparams() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
 
-```{r}
+```{r, results='hide'}
 # get back the final model
-caret_model = model$get_final_models(subset = 'a')
+caret_model = model$get_final_models()
 mdl_compare_nn = ModelCompareNNforCaret$new(data = data,
                                          var_interest = var_interest,
                                          mdl_list = caret_model,
                                          verbose = 1)
+```
+
+```{r}
 # plot the rolling window forecasts
 p = mdl_compare_nn$plot_batch_forecasts()
 ```
+
 
 ```{r}
 # plot the ASC over time
