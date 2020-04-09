@@ -144,7 +144,7 @@ Since the process generating the realization is assumed to be stationary, we wil
 
 ### Model ID
 
-```{r}
+```{r, echo=FALSE}
 # get the top five models selected by AIC and BIC
 aicbic.tables <- aicbic(x, 0:12, 0:3, silent = TRUE)
 
@@ -177,7 +177,7 @@ The factor table for the estimated model does not show roots near the unit circl
 est.s <- est.arma.wge(data.train$gdp_change, 2, 0)
 ```
 
-(1-0.7391 $B$ )(1+0.3472 $B$ )( $X_t$ - `r mean(data$gdp_change)`) = $a_t$ with $\sigma_a^2$ = `r est.s$avar`
+(1-0.7391 $B$ )(1+0.3472 $B$ )( $X_{t}$ - `r mean(data$gdp_change)`) = $a_{t}$ with $\sigma_{a}^2$ = `r est.s$avar`
 
 
 The results from the model fit appear to be nearly consisent with white noise.
@@ -246,7 +246,7 @@ The realizations of the exogeneous variables are shown below.
 
 The variables `fedintrate` and `treas3mo` appear to be collinear; we will keep `fedintrate`.
 
-```{r, fig.width=17}
+```{r, fig.width=15}
 eda <- MultivariateEDA$new(data = data, var_interest = "gdp_change", var_time = "date")
 eda$plot_data(ncol = 3)
 ```
@@ -411,7 +411,7 @@ A grid search is performed over number of repetitions, the number of hidden laye
 
 ```{r, echo=FALSE}
 # variables were previously dropped for the VAR model; just bring them back
-data <- read.csv("../data/economic_indicators_all_ex_3mo_china_inc_treas3mo.csv")[1:151, ]
+data <- read.csv("../data/economic_indicators_all_ex_3mo_china_inc_treas3mo.csv")
 data <- data %>% select(-date)
 data.train <- data[1:149, ]
 data.test <- data[150:151, ]
@@ -431,13 +431,6 @@ model = ModelBuildNNforCaret$new(data = data.train, var_interest = "gdp_change",
                                  parallel = TRUE,
                                  seed = 1,
                                  verbose = 1)
-
-#model$summarize_hyperparam_results()
-#model$summarize_build()
-
-#nnfor_model = model$get_final_models(subset = 'r')
-#nfor_model
-
 
 temp <- model$summarize_best_hyperparams()
 res <- model$summarize_hyperparam_results()
@@ -499,7 +492,6 @@ However, we will keep this model as it may still be useful as we are forecasting
 ```{r, echo=FALSE}
 # get back the nnfor mlp model
 model.nnfor <- model$get_final_models(subset = 'r')
-evaluate_residuals(as.numeric(model.nnfor$net$response))
 
 # get the residuals 
 values.fitted <- as.numeric(model.nnfor$fitted)

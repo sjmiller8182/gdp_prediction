@@ -1,7 +1,7 @@
 GDP Prediction
 ================
 Nikhil Gutpa and Stuart Miller
-2020-04-07 22:58:06
+2020-04-09 00:16:36
 
 # Introduction
 
@@ -159,24 +159,376 @@ stationary, we will model this realization with an ARMA model.
 
 ``` r
 # get the top five models selected by AIC and BIC
-aicbic(x, 0:12, 0:3, silent = TRUE)
+aicbic.tables <- aicbic(x, 0:12, 0:3, silent = TRUE)
+
+# print the aic table
+aicbic.tables[[1]] %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
-    ## [[1]]
-    ##    p q      aic
-    ## 9  2 0 1.765702
-    ## 6  1 1 1.772199
-    ## 7  1 2 1.776732
-    ## 10 2 1 1.778418
-    ## 13 3 0 1.778594
-    ## 
-    ## [[2]]
-    ##    p q      bic
-    ## 9  2 0 1.825648
-    ## 6  1 1 1.832145
-    ## 5  1 0 1.854565
-    ## 7  1 2 1.856660
-    ## 10 2 1 1.858346
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+</th>
+
+<th style="text-align:right;">
+
+p
+
+</th>
+
+<th style="text-align:right;">
+
+q
+
+</th>
+
+<th style="text-align:right;">
+
+aic
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+9
+
+</td>
+
+<td style="text-align:right;">
+
+2
+
+</td>
+
+<td style="text-align:right;">
+
+0
+
+</td>
+
+<td style="text-align:right;">
+
+1.765702
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+6
+
+</td>
+
+<td style="text-align:right;">
+
+1
+
+</td>
+
+<td style="text-align:right;">
+
+1
+
+</td>
+
+<td style="text-align:right;">
+
+1.772199
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+7
+
+</td>
+
+<td style="text-align:right;">
+
+1
+
+</td>
+
+<td style="text-align:right;">
+
+2
+
+</td>
+
+<td style="text-align:right;">
+
+1.776732
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+10
+
+</td>
+
+<td style="text-align:right;">
+
+2
+
+</td>
+
+<td style="text-align:right;">
+
+1
+
+</td>
+
+<td style="text-align:right;">
+
+1.778418
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+13
+
+</td>
+
+<td style="text-align:right;">
+
+3
+
+</td>
+
+<td style="text-align:right;">
+
+0
+
+</td>
+
+<td style="text-align:right;">
+
+1.778594
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+``` r
+# print the bic table
+aicbic.tables[[2]] %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
+
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+</th>
+
+<th style="text-align:right;">
+
+p
+
+</th>
+
+<th style="text-align:right;">
+
+q
+
+</th>
+
+<th style="text-align:right;">
+
+bic
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+9
+
+</td>
+
+<td style="text-align:right;">
+
+2
+
+</td>
+
+<td style="text-align:right;">
+
+0
+
+</td>
+
+<td style="text-align:right;">
+
+1.825648
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+6
+
+</td>
+
+<td style="text-align:right;">
+
+1
+
+</td>
+
+<td style="text-align:right;">
+
+1
+
+</td>
+
+<td style="text-align:right;">
+
+1.832145
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+5
+
+</td>
+
+<td style="text-align:right;">
+
+1
+
+</td>
+
+<td style="text-align:right;">
+
+0
+
+</td>
+
+<td style="text-align:right;">
+
+1.854565
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+7
+
+</td>
+
+<td style="text-align:right;">
+
+1
+
+</td>
+
+<td style="text-align:right;">
+
+2
+
+</td>
+
+<td style="text-align:right;">
+
+1.856660
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+10
+
+</td>
+
+<td style="text-align:right;">
+
+2
+
+</td>
+
+<td style="text-align:right;">
+
+1
+
+</td>
+
+<td style="text-align:right;">
+
+1.858346
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
 
 Both AIC and BIC select low order models with an ARMA(2, 0) selected as
 the best ID by both criteria. The following models are selected by both
@@ -193,21 +545,21 @@ An ARMA(2,0) was fit based on the model ID from AIC and BIC. The factor
 table for the estimated model does not show roots near the unit circle.
 
 ``` r
-est.s <- est.arma.wge(x, 2, 0)
+est.s <- est.arma.wge(data.train$gdp_change, 2, 0)
 ```
 
     ## 
     ## Coefficients of Original polynomial:  
-    ## 0.3919 0.2566 
+    ## 0.3921 0.2568 
     ## 
     ## Factor                 Roots                Abs Recip    System Freq 
-    ## 1-0.7391B              1.3530               0.7391       0.0000
-    ## 1+0.3472B             -2.8801               0.3472       0.5000
+    ## 1-0.7394B              1.3525               0.7394       0.0000
+    ## 1+0.3473B             -2.8794               0.3473       0.5000
     ##   
     ## 
 
-(1-0.7391\(B\))(1+0.3472\(B\))(\(X_t\) - 5.1490066) = \(a_t\) with
-\(\sigma_a^2\) = 5.6179518
+(1-0.7391 \(B\) )(1+0.3472 \(B\) )( \(X_t\) - 5.1490066) = \(a_t\) with
+\(\sigma_a^2\) = 5.6859734
 
 The results from the model fit appear to be nearly consisent with white
 noise. The resulting realization appears very close to white noise.
@@ -215,23 +567,12 @@ Several of the autocorrelations of the results are marginally
 significant, but not more than expected. As secondary evaluation, the
 Ljung-Box test does not reject the null hypothesis that residuals are
 not white noise. However, all the models selected by AIC and BIC show a
-similar behavior.
-
-``` r
-# evaluate residuals of arma model
-tbl <- tswgewrapped::evaluate_residuals(est.s$res)
-```
+similar
+behavior.
 
 ![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
     ## None of the 'ljung_box' tests rejected the null hypothesis that the data is consistent with white noise at an significance level of  0.05
-
-``` r
-tbl %>%
-  select(-c(Model)) %>%
-  kable() %>%
-  kable_styling(bootstrap_options = "striped", full_width = F)
-```
 
 <table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
 
@@ -297,7 +638,7 @@ Ljung-Box test
 
 <td style="text-align:right;">
 
-32.08723
+31.48493
 
 </td>
 
@@ -309,7 +650,7 @@ Ljung-Box test
 
 <td style="text-align:right;">
 
-0.1248443
+0.1402872
 
 </td>
 
@@ -337,7 +678,7 @@ Ljung-Box test
 
 <td style="text-align:right;">
 
-53.20827
+51.68120
 
 </td>
 
@@ -349,7 +690,7 @@ Ljung-Box test
 
 <td style="text-align:right;">
 
-0.2806241
+0.3320718
 
 </td>
 
@@ -420,8 +761,11 @@ tbl <- mdl_compare_uni$plot_batch_ases(only_sliding = TRUE)
 
 ### Explanatory Variables
 
-The realizations of the exogeneous variables are shown
-below.
+The realizations of the exogeneous variables are shown below.
+
+The variables `fedintrate` and `treas3mo` appear to be collinear; we
+will keep
+`fedintrate`.
 
 ``` r
 eda <- MultivariateEDA$new(data = data, var_interest = "gdp_change", var_time = "date")
@@ -941,7 +1285,11 @@ Subset to variables that may be useful given cross-correlations.
 
 ``` r
 # Subset data to most intersting variables
-data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
+data.train <- data.train %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
+                                 fedintrate, cpichg, inventorieschg, ppichg,
+                                 homeownership, personincomechg, housingpermitschg,
+                                 treas10yr3mo, wilshirechg, ipichg))
+data.test <- data.test %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
                                  fedintrate, cpichg, inventorieschg, ppichg,
                                  homeownership, personincomechg, housingpermitschg,
                                  treas10yr3mo, wilshirechg, ipichg))
@@ -968,7 +1316,7 @@ The models selected contained the variables `housingpermitschg` and
 lag.max = 12
 # construct VAR model with type const and variables 'housingpermitschg', 'inventorieschg'
 models = list("VARS AIC Both"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
-mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'housingpermitschg', 'inventorieschg')],
+mdl_build = ModelBuildMultivariateVAR$new(data.train[ , c(var_interest, 'housingpermitschg', 'inventorieschg')],
                                           var_interest = var_interest,
                                             mdl_list = models, verbose = 1)
 
@@ -978,7 +1326,7 @@ model.both <- mdl_build$get_final_models(subset = 'r')
 
 # construct VAR model with type const and variable 'inventorieschg'
 models = list("VARS AIC Inven"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
-mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'inventorieschg')],
+mdl_build = ModelBuildMultivariateVAR$new(data.train[ , c(var_interest, 'inventorieschg')],
                                           var_interest = var_interest,
                                             mdl_list = models, verbose = 1)
 
@@ -988,7 +1336,7 @@ model.inven <- mdl_build$get_final_models(subset = 'r')
 
 # construct VAR model with type const and variable 'housingpermitschg'
 models = list("VARS AIC HousePerm"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
-mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'housingpermitschg')],
+mdl_build = ModelBuildMultivariateVAR$new(data.train[ , c(var_interest, 'housingpermitschg')],
                                           var_interest = var_interest,
                                             mdl_list = models, verbose = 1)
 
@@ -1010,7 +1358,7 @@ batch_size = 44
 n.ahead = 2
 
 # run model comparison
-mdl_compare_var = ModelCompareMultivariateVAR$new(data = data, var_interest = var_interest,
+mdl_compare_var = ModelCompareMultivariateVAR$new(data = data.train, var_interest = var_interest,
                                               mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
 ```
 
@@ -1044,7 +1392,163 @@ average over the windows with the spread of the main distribution also
 being lower than the other two models. The outliers of the ASE plot also
 appear to be as extreme or less extreme than the other two models. We
 will select the VAR model containing on `inventorieschg` as an
-explanatory variable.
+explanatory
+variable.
+
+``` r
+mdl_compare_var$remove_models(c('VARS AIC Both - R', 'VARS AIC HousePerm - R'))
+```
+
+    ## 
+    ## Model: 'VARS AIC Both - R' found in object. This will be removed.
+    ## Model: 'VARS AIC HousePerm - R' found in object. This will be removed.
+
+### Model Fit
+
+An examination of the residuals show that the residuals of the VAR
+appear to be consistent with white noise. The autocorrelations of the
+residuals also appear to be consistent with white noise. A few
+autocorrelations are marginally significant, but this is with in the 95%
+confidence level. Additionally, the Ljung-Box test fails to reject the
+null hypothesis that the realization is not white noise at K = 24 and K
+=
+48.
+
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
+    ## None of the 'ljung_box' tests rejected the null hypothesis that the data is consistent with white noise at an significance level of  0.05
+
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+test
+
+</th>
+
+<th style="text-align:right;">
+
+K
+
+</th>
+
+<th style="text-align:right;">
+
+chi.square
+
+</th>
+
+<th style="text-align:right;">
+
+df
+
+</th>
+
+<th style="text-align:right;">
+
+pval
+
+</th>
+
+<th style="text-align:left;">
+
+Decision
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+Ljung-Box test
+
+</td>
+
+<td style="text-align:right;">
+
+24
+
+</td>
+
+<td style="text-align:right;">
+
+30.77189
+
+</td>
+
+<td style="text-align:right;">
+
+24
+
+</td>
+
+<td style="text-align:right;">
+
+0.1604695
+
+</td>
+
+<td style="text-align:left;">
+
+FTR NULL
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+Ljung-Box test
+
+</td>
+
+<td style="text-align:right;">
+
+48
+
+</td>
+
+<td style="text-align:right;">
+
+55.11200
+
+</td>
+
+<td style="text-align:right;">
+
+48
+
+</td>
+
+<td style="text-align:right;">
+
+0.2235869
+
+</td>
+
+<td style="text-align:left;">
+
+FTR NULL
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
 
 ## Neural Network Model
 
@@ -1063,7 +1567,7 @@ nnfor_grid = expand.grid(reps = c(15, 25, 35, 45),
                          hd = c(1:7),
                          allow.det.season = c(FALSE, TRUE))
 # search for best NN hyperparameters in given grid
-model = ModelBuildNNforCaret$new(data = data, var_interest = "gdp_change", m = 6,
+model = ModelBuildNNforCaret$new(data = data.train, var_interest = "gdp_change", m = 6,
                                  search = 'grid',
                                  grid = nnfor_grid,
                                  batch_size = 44, h = 2,
@@ -1077,6 +1581,7 @@ model = ModelBuildNNforCaret$new(data = data, var_interest = "gdp_change", m = 6
 #nnfor_model = model$get_final_models(subset = 'r')
 #nfor_model
 
+
 temp <- model$summarize_best_hyperparams()
 res <- model$summarize_hyperparam_results()
 final.ase <- filter(res, reps == temp$reps &
@@ -1089,335 +1594,290 @@ heatmap below. The panel (True/False) is for the seasonality option.
 Seasonality does not appear to have an affect on ASE. However, the
 combination of number of hidden layers and number of repetitions
 strongly affects the ASE. The best hyperparameters based on this grid
-search are 25 repetitions and 4 hidden layers, which has a mean rolling
+search are 45 repetitions and 4 hidden layers, which has a mean rolling
 window ASE of
-7.3979769.
+7.4667764.
 
 ``` r
 model$plot_hyperparam_results()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-20-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-21-2.png)<!-- -->
 
 The best hyperparemeters are shown below
 
 ``` r
-model$summarize_best_hyperparams()
+model$summarize_best_hyperparams() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
-    ##    reps hd allow.det.season
-    ## 21   25  4            FALSE
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+</th>
+
+<th style="text-align:right;">
+
+reps
+
+</th>
+
+<th style="text-align:right;">
+
+hd
+
+</th>
+
+<th style="text-align:left;">
+
+allow.det.season
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+49
+
+</td>
+
+<td style="text-align:right;">
+
+45
+
+</td>
+
+<td style="text-align:right;">
+
+4
+
+</td>
+
+<td style="text-align:left;">
+
+FALSE
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
 
 ``` r
 # get back the final model
-caret_model = model$get_final_models(subset = 'a')
-mdl_compare_nn = ModelCompareNNforCaret$new(data = data,
+
+# setup search grid
+nnfor_grid = expand.grid(reps = c(temp$reps),
+                         hd = c(temp$hd),
+                         allow.det.season = c(temp$allow.det.season))
+# search for best NN hyperparameters in given grid
+model = ModelBuildNNforCaret$new(data = data.train, var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 grid = nnfor_grid,
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
+caret_model = model$get_final_models()
+mdl_compare_nn = ModelCompareNNforCaret$new(data = data.train,
                                          var_interest = var_interest,
                                          mdl_list = caret_model,
                                          verbose = 1)
 ```
 
-    ## 
-    ## Computing metrics for:  reps15_hd1_sdetFALSE
+### Model Fit
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+A plot of the residuals shows that the residuals do not appear to be
+consistent with white noise. This is also evident from the ACF, which
+has more significant autocorrelations than expected. However, we will
+keep this model as it may still be useful as we are forecasting a short
+horizon.
 
-    ## 
-    ## Computing metrics for:  reps15_hd1_sdetTRUE
+    ## Warning: Ignoring unknown parameters: conf.int.fill
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
 
-    ## 
-    ## Computing metrics for:  reps15_hd2_sdetFALSE
+    ## At least one of the 'ljung_box' tests rejected the null hypothesis that the data is consistent with white noise at an significance level of  0.05
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+    ## # A tibble: 2 x 7
+    ##   test               K chi.square    df  pval Model    Decision   
+    ##   <chr>          <dbl>      <dbl> <dbl> <dbl> <chr>    <chr>      
+    ## 1 Ljung-Box test    24       154.    24     0 My Model REJECT NULL
+    ## 2 Ljung-Box test    48       180.    48     0 My Model REJECT NULL
 
-    ## 
-    ## Computing metrics for:  reps15_hd2_sdetTRUE
+    ## Warning: Ignoring unknown parameters: conf.int.fill
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-24-2.png)<!-- -->
 
-    ## 
-    ## Computing metrics for:  reps15_hd3_sdetFALSE
+    ## At least one of the 'ljung_box' tests rejected the null hypothesis that the data is consistent with white noise at an significance level of  0.05
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<table class="table table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
 
-    ## 
-    ## Computing metrics for:  reps15_hd3_sdetTRUE
+<thead>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<tr>
 
-    ## 
-    ## Computing metrics for:  reps15_hd4_sdetFALSE
+<th style="text-align:left;">
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+test
 
-    ## 
-    ## Computing metrics for:  reps15_hd4_sdetTRUE
+</th>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<th style="text-align:right;">
 
-    ## 
-    ## Computing metrics for:  reps15_hd5_sdetFALSE
+K
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+</th>
 
-    ## 
-    ## Computing metrics for:  reps15_hd5_sdetTRUE
+<th style="text-align:right;">
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+chi.square
 
-    ## 
-    ## Computing metrics for:  reps15_hd6_sdetFALSE
+</th>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<th style="text-align:right;">
 
-    ## 
-    ## Computing metrics for:  reps15_hd6_sdetTRUE
+df
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+</th>
 
-    ## 
-    ## Computing metrics for:  reps15_hd7_sdetFALSE
+<th style="text-align:right;">
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+pval
 
-    ## 
-    ## Computing metrics for:  reps15_hd7_sdetTRUE
+</th>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<th style="text-align:left;">
 
-    ## 
-    ## Computing metrics for:  reps25_hd1_sdetFALSE
+Decision
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+</th>
 
-    ## 
-    ## Computing metrics for:  reps25_hd1_sdetTRUE
+</tr>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+</thead>
 
-    ## 
-    ## Computing metrics for:  reps25_hd2_sdetFALSE
+<tbody>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<tr>
 
-    ## 
-    ## Computing metrics for:  reps25_hd2_sdetTRUE
+<td style="text-align:left;">
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+Ljung-Box test
 
-    ## 
-    ## Computing metrics for:  reps25_hd3_sdetFALSE
+</td>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<td style="text-align:right;">
 
-    ## 
-    ## Computing metrics for:  reps25_hd3_sdetTRUE
+24
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+</td>
 
-    ## 
-    ## Computing metrics for:  reps25_hd4_sdetFALSE
+<td style="text-align:right;">
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+37.24949
 
-    ## 
-    ## Computing metrics for:  reps25_hd4_sdetTRUE
+</td>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<td style="text-align:right;">
 
-    ## 
-    ## Computing metrics for:  reps25_hd5_sdetFALSE
+24
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+</td>
 
-    ## 
-    ## Computing metrics for:  reps25_hd5_sdetTRUE
+<td style="text-align:right;">
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+0.0413146
 
-    ## 
-    ## Computing metrics for:  reps25_hd6_sdetFALSE
+</td>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<td style="text-align:left;">
 
-    ## 
-    ## Computing metrics for:  reps25_hd6_sdetTRUE
+REJECT NULL
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+</td>
 
-    ## 
-    ## Computing metrics for:  reps25_hd7_sdetFALSE
+</tr>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<tr>
 
-    ## 
-    ## Computing metrics for:  reps25_hd7_sdetTRUE
+<td style="text-align:left;">
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+Ljung-Box test
 
-    ## 
-    ## Computing metrics for:  reps35_hd1_sdetFALSE
+</td>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<td style="text-align:right;">
 
-    ## 
-    ## Computing metrics for:  reps35_hd1_sdetTRUE
+48
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+</td>
 
-    ## 
-    ## Computing metrics for:  reps35_hd2_sdetFALSE
+<td style="text-align:right;">
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+66.94068
 
-    ## 
-    ## Computing metrics for:  reps35_hd2_sdetTRUE
+</td>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<td style="text-align:right;">
 
-    ## 
-    ## Computing metrics for:  reps35_hd3_sdetFALSE
+48
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+</td>
 
-    ## 
-    ## Computing metrics for:  reps35_hd3_sdetTRUE
+<td style="text-align:right;">
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+0.0366382
 
-    ## 
-    ## Computing metrics for:  reps35_hd4_sdetFALSE
+</td>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+<td style="text-align:left;">
 
-    ## 
-    ## Computing metrics for:  reps35_hd4_sdetTRUE
+REJECT NULL
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+</td>
 
-    ## 
-    ## Computing metrics for:  reps35_hd5_sdetFALSE
+</tr>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
+</tbody>
 
-    ## 
-    ## Computing metrics for:  reps35_hd5_sdetTRUE
+</table>
 
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps35_hd6_sdetFALSE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps35_hd6_sdetTRUE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps35_hd7_sdetFALSE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps35_hd7_sdetTRUE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd1_sdetFALSE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd1_sdetTRUE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd2_sdetFALSE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd2_sdetTRUE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd3_sdetFALSE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd3_sdetTRUE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd4_sdetFALSE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd4_sdetTRUE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd5_sdetFALSE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd5_sdetTRUE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd6_sdetFALSE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd6_sdetTRUE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd7_sdetFALSE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## 
-    ## Computing metrics for:  reps45_hd7_sdetTRUE
-
-    ## Warning in private$models[[name]]$ASEs = res$ASEs: Coercing LHS to a list
-
-    ## NULL
+### Forecast Results
 
 ``` r
 # plot the rolling window forecasts
 p = mdl_compare_nn$plot_batch_forecasts()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-22-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->
 
 ``` r
 # plot the ASC over time
 p = mdl_compare_nn$plot_batch_ases() 
 ```
 
-    ## Warning: Removed 2352 row(s) containing missing values (geom_path).
+    ## Warning: Removed 42 row(s) containing missing values (geom_path).
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
 
-## Ensemble Mode
-
-## Comparison
+## Comparison of Base Models
 
 ``` r
 # build compare model object
@@ -1431,7 +1891,7 @@ mdl_combine = ModelCombine$new(data = data,
 mdl_combine$plot_boxplot_ases()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
 
 ``` r
 mdl_combine$plot_batch_forecasts()
@@ -1439,13 +1899,106 @@ mdl_combine$plot_batch_forecasts()
 
     ## Warning: Removed 86 row(s) containing missing values (geom_path).
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
 
     ## Warning: Removed 86 row(s) containing missing values (geom_path).
     
     ## Warning: Removed 86 row(s) containing missing values (geom_path).
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-28-2.png)<!-- -->
+
+## Ensemble Model
+
+``` r
+mdl_combine$create_ensemble()
+```
+
+    ## tibble [106 × 4] (S3: tbl_df/tbl/data.frame)
+    ##  $ ARMA(2,0)           : num [1:106] 6.71 6.76 6.72 6.82 5.02 ...
+    ##  $ Realization         : num [1:106] 6.1 7.1 2.9 4.8 4.4 7.9 5.9 7.6 4.7 7 ...
+    ##  $ VARS AIC Inven - R  : num [1:106] 7.3 7.42 6.99 7.2 4.07 ...
+    ##  $ reps45_hd4_sdetFALSE: num [1:106] 5.94 4.55 5.4 7.28 5.63 ...
+    ##  - attr(*, "na.action")= 'omit' Named int [1:45] 1 2 3 4 5 6 7 8 9 10 ...
+    ##   ..- attr(*, "names")= chr [1:45] "1" "2" "3" "4" ...
+    ## NULL
+    ## 
+    ## Call:
+    ## glm(formula = Realization ~ ., data = data_for_model)
+    ## 
+    ## Deviance Residuals: 
+    ##      Min        1Q    Median        3Q       Max  
+    ## -11.0064   -1.3595    0.1796    1.6864    5.0134  
+    ## 
+    ## Coefficients:
+    ##                      Estimate Std. Error t value Pr(>|t|)   
+    ## (Intercept)           0.65388    0.74689   0.875  0.38338   
+    ## `ARMA(2,0)`           0.93438    0.31622   2.955  0.00389 **
+    ## `VARS AIC Inven - R` -0.23455    0.27649  -0.848  0.39824   
+    ## reps45_hd4_sdetFALSE  0.09391    0.16285   0.577  0.56544   
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for gaussian family taken to be 5.420671)
+    ## 
+    ##     Null deviance: 719.08  on 105  degrees of freedom
+    ## Residual deviance: 552.91  on 102  degrees of freedom
+    ## AIC: 485.9
+    ## 
+    ## Number of Fisher Scoring iterations: 2
+
+``` r
+mdl_combine$get_tabular_metrics(ases = FALSE) %>% na.omit()
+```
+
+    ## # A tibble: 620 x 5
+    ##    Model      Time     f    ll    ul
+    ##    <chr>     <dbl> <dbl> <dbl> <dbl>
+    ##  1 ARMA(2,0)    43  6.71 2.24  11.2 
+    ##  2 ARMA(2,0)    44  6.76 1.96  11.6 
+    ##  3 ARMA(2,0)    45  6.72 2.13  11.3 
+    ##  4 ARMA(2,0)    46  6.82 1.89  11.8 
+    ##  5 ARMA(2,0)    47  5.02 0.833  9.22
+    ##  6 ARMA(2,0)    48  5.60 1.10  10.1 
+    ##  7 ARMA(2,0)    49  6.56 2.51  10.6 
+    ##  8 ARMA(2,0)    50  6.94 2.58  11.3 
+    ##  9 ARMA(2,0)    51  6.73 2.69  10.8 
+    ## 10 ARMA(2,0)    52  6.82 2.49  11.2 
+    ## # … with 610 more rows
+
+``` r
+mdl_combine$statistical_compare()
+```
+
+    ##              Df Sum Sq Mean Sq F value Pr(>F)
+    ## Model         2    117   58.43   0.514  0.599
+    ## Residuals   157  17845  113.66               
+    ## 
+    ## 
+    ##   Tukey multiple comparisons of means
+    ##     95% family-wise confidence level
+    ## 
+    ## Fit: aov(formula = ASE ~ Model, data = results)
+    ## 
+    ## $Model
+    ##                                               diff       lwr      upr
+    ## reps45_hd4_sdetFALSE-ARMA(2,0)           2.0887454 -2.788931 6.966422
+    ## VARS AIC Inven - R-ARMA(2,0)             1.1020469 -3.775629 5.979723
+    ## VARS AIC Inven - R-reps45_hd4_sdetFALSE -0.9866985 -5.887115 3.913718
+    ##                                             p adj
+    ## reps45_hd4_sdetFALSE-ARMA(2,0)          0.5696167
+    ## VARS AIC Inven - R-ARMA(2,0)            0.8544346
+    ## VARS AIC Inven - R-reps45_hd4_sdetFALSE 0.8825138
+
+    ## Call:
+    ##    aov(formula = ASE ~ Model, data = results)
+    ## 
+    ## Terms:
+    ##                     Model Residuals
+    ## Sum of Squares    116.857 17845.381
+    ## Deg. of Freedom         2       157
+    ## 
+    ## Residual standard error: 10.66137
+    ## Estimated effects may be unbalanced
 
 ## Conclusion
 
@@ -4129,13 +4682,13 @@ mdl_compare$plot_batch_forecasts()
 
     ## Warning: Removed 168 row(s) containing missing values (geom_path).
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-38-1.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-43-1.png)<!-- -->
 
     ## Warning: Removed 168 row(s) containing missing values (geom_path).
 
     ## Warning: Removed 168 row(s) containing missing values (geom_path).
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-38-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-43-2.png)<!-- -->
 
     ## $forecasts
     ## # A tibble: 580 x 5
@@ -4197,7 +4750,7 @@ mdl_compare$plot_batch_forecasts()
 mdl_compare$plot_boxplot_ases()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-38-3.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-43-3.png)<!-- -->
 
     ## # A tibble: 148 x 5
     ##    Model                    ASE Time_Test_Start Time_Test_End Batch
@@ -4233,13 +4786,13 @@ mdl_compare$plot_batch_forecasts()
 
     ## Warning: Removed 42 row(s) containing missing values (geom_path).
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-44-1.png)<!-- -->
 
     ## Warning: Removed 42 row(s) containing missing values (geom_path).
     
     ## Warning: Removed 42 row(s) containing missing values (geom_path).
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-39-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-44-2.png)<!-- -->
 
     ## $forecasts
     ## # A tibble: 232 x 5
@@ -4301,7 +4854,7 @@ mdl_compare$plot_batch_forecasts()
 mdl_compare$plot_boxplot_ases()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-39-3.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-44-3.png)<!-- -->
 
     ## # A tibble: 37 x 5
     ##    Model                ASE Time_Test_Start Time_Test_End Batch
@@ -4349,7 +4902,7 @@ model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ip
     ## Aggregating results
     ## Selecting tuning parameters
     ## Fitting reps = 50, hd = 5, allow.det.season = TRUE on full training set
-    ## - Total Time for training: : 73.837 sec elapsed
+    ## - Total Time for training: : 73.919 sec elapsed
 
 ``` r
 model$summarize_hyperparam_results()
@@ -4365,7 +4918,7 @@ model$summarize_hyperparam_results()
 model$plot_hyperparam_results()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-40-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-40-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-45-2.png)<!-- -->
 
 ## Iteration 2
 
@@ -4384,7 +4937,7 @@ model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ip
     ## Aggregating results
     ## Selecting tuning parameters
     ## Fitting reps = 20, hd = 5, allow.det.season = TRUE on full training set
-    ## - Total Time for training: : 72.744 sec elapsed
+    ## - Total Time for training: : 71.589 sec elapsed
 
 ``` r
 model$summarize_hyperparam_results()
@@ -4400,7 +4953,7 @@ model$summarize_hyperparam_results()
 model$plot_hyperparam_results()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-41-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-46-2.png)<!-- -->
 
 ## Iteration 3
 
@@ -4419,7 +4972,7 @@ model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ip
     ## Aggregating results
     ## Selecting tuning parameters
     ## Fitting reps = 50, hd = 5, allow.det.season = TRUE on full training set
-    ## - Total Time for training: : 107.739 sec elapsed
+    ## - Total Time for training: : 99.644 sec elapsed
 
 ``` r
 model$summarize_hyperparam_results()
@@ -4435,7 +4988,7 @@ model$summarize_hyperparam_results()
 model$plot_hyperparam_results()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-42-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-47-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-47-2.png)<!-- -->
 
 ## Iteration 5
 
@@ -4454,7 +5007,7 @@ model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ip
     ## Aggregating results
     ## Selecting tuning parameters
     ## Fitting reps = 50, hd = 5, allow.det.season = TRUE on full training set
-    ## - Total Time for training: : 85.785 sec elapsed
+    ## - Total Time for training: : 82.281 sec elapsed
 
 ``` r
 model$summarize_hyperparam_results()
@@ -4470,7 +5023,7 @@ model$summarize_hyperparam_results()
 model$plot_hyperparam_results()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-43-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-43-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-48-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-48-2.png)<!-- -->
 
 ## Iteration 5
 
@@ -4489,7 +5042,7 @@ model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ip
     ## Aggregating results
     ## Selecting tuning parameters
     ## Fitting reps = 50, hd = 1, allow.det.season = TRUE on full training set
-    ## - Total Time for training: : 71.785 sec elapsed
+    ## - Total Time for training: : 70.447 sec elapsed
 
 ``` r
 model$summarize_hyperparam_results()
@@ -4505,7 +5058,7 @@ model$summarize_hyperparam_results()
 model$plot_hyperparam_results()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-44-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-44-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-49-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-49-2.png)<!-- -->
 
 ## Iteration 6
 
@@ -4523,7 +5076,7 @@ model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ip
     ## Aggregating results
     ## Selecting tuning parameters
     ## Fitting reps = 50, hd = 5, allow.det.season = TRUE on full training set
-    ## - Total Time for training: : 83.705 sec elapsed
+    ## - Total Time for training: : 81.279 sec elapsed
 
 ``` r
 model$summarize_hyperparam_results()
@@ -4539,7 +5092,7 @@ model$summarize_hyperparam_results()
 model$plot_hyperparam_results()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-45-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-50-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-50-2.png)<!-- -->
 
 ## Iteration 7
 
@@ -4557,7 +5110,7 @@ model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'nfjobschg', 'ip
     ## Aggregating results
     ## Selecting tuning parameters
     ## Fitting reps = 50, hd = 5, allow.det.season = TRUE on full training set
-    ## - Total Time for training: : 100.694 sec elapsed
+    ## - Total Time for training: : 98.435 sec elapsed
 
 ``` r
 model$summarize_hyperparam_results()
@@ -4573,7 +5126,7 @@ model$summarize_hyperparam_results()
 model$plot_hyperparam_results()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-46-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-51-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-51-2.png)<!-- -->
 
 ## Iteration 8
 
@@ -4591,7 +5144,7 @@ model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'ipichg', 'treas
     ## Aggregating results
     ## Selecting tuning parameters
     ## Fitting reps = 20, hd = 5, allow.det.season = TRUE on full training set
-    ## - Total Time for training: : 67.071 sec elapsed
+    ## - Total Time for training: : 65.307 sec elapsed
 
 ``` r
 model$summarize_hyperparam_results()
@@ -4607,7 +5160,7 @@ model$summarize_hyperparam_results()
 model$plot_hyperparam_results()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-47-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-47-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-52-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-52-2.png)<!-- -->
 
 ## Iteration 9
 
@@ -4625,7 +5178,7 @@ model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'ipichg', 'treas
     ## Aggregating results
     ## Selecting tuning parameters
     ## Fitting reps = 20, hd = 5, allow.det.season = TRUE on full training set
-    ## - Total Time for training: : 65.261 sec elapsed
+    ## - Total Time for training: : 66.3 sec elapsed
 
 ``` r
 model$summarize_hyperparam_results()
@@ -4641,7 +5194,7 @@ model$summarize_hyperparam_results()
 model$plot_hyperparam_results()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-48-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-48-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-53-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-53-2.png)<!-- -->
 
 ## Iteration 10
 
@@ -4658,7 +5211,7 @@ model = ModelBuildNNforCaret$new(data = data[ , c(var_interest, 'homeownership')
     ## Aggregating results
     ## Selecting tuning parameters
     ## Fitting reps = 50, hd = 5, allow.det.season = TRUE on full training set
-    ## - Total Time for training: : 130.227 sec elapsed
+    ## - Total Time for training: : 130.953 sec elapsed
 
 ``` r
 model$summarize_hyperparam_results()
@@ -4674,4 +5227,4 @@ model$summarize_hyperparam_results()
 model$plot_hyperparam_results()
 ```
 
-![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-49-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-49-2.png)<!-- -->
+![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-54-1.png)<!-- -->![](gdp_prediction_analysis_shortened_data_files/figure-gfm/unnamed-chunk-54-2.png)<!-- -->
