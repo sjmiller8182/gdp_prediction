@@ -29,7 +29,9 @@ library(ggplot2)
 library(tseries)
 library(kableExtra)
 library(knitr)
-data = read.csv("../data/economic_indicators_all_ex_3mo_china_inc_treas3mo.csv")[1:151, ]
+data <- read.csv("../data/economic_indicators_all_ex_3mo_china_inc_treas3mo.csv")[1:151, ]
+data.train <- data[1:149, ]
+data.test <- data[150:151, ]
 ```
 
 
@@ -147,12 +149,12 @@ Since the process generating the realization is assumed to be stationary, we wil
 aicbic.tables <- aicbic(x, 0:12, 0:3, silent = TRUE)
 
 # print the aic table
-catch[[1]] %>%
+aicbic.tables[[1]] %>%
   kable() %>%
   kable_styling(bootstrap_options = "striped", full_width = F)
 
 # print the bic table
-catch[[2]] %>%
+aicbic.tables[[2]] %>%
   kable() %>%
   kable_styling(bootstrap_options = "striped", full_width = F)
 ```
@@ -172,10 +174,10 @@ An ARMA(2,0) was fit based on the model ID from AIC and BIC.
 The factor table for the estimated model does not show roots near the unit circle.
 
 ```{r}
-est.s <- est.arma.wge(x, 2, 0)
+est.s <- est.arma.wge(data.train$gdp_change, 2, 0)
 ```
 
-(1-0.7391$B$)(1+0.3472$B$)($X_t$ - `r mean(data$gdp_change)`) = $a_t$ with $\sigma_a^2$ = `r est.s$avar`
+(1-0.7391 $B$ )(1+0.3472 $B$ )( $X_t$ - `r mean(data$gdp_change)`) = $a_t$ with $\sigma_a^2$ = `r est.s$avar`
 
 
 The results from the model fit appear to be nearly consisent with white noise.
@@ -184,7 +186,7 @@ Several of the autocorrelations of the results are marginally significant, but n
 As secondary evaluation, the Ljung-Box test does not reject the null hypothesis that residuals are not white noise.
 However, all the models selected by AIC and BIC show a similar behavior.
 
-```{r, message=FALSE}
+```{r, message=FALSE, echo=FALSE}
 # evaluate residuals of arma model
 tbl <- tswgewrapped::evaluate_residuals(est.s$res)
 tbl %>%
@@ -242,7 +244,9 @@ tbl <- mdl_compare_uni$plot_batch_ases(only_sliding = TRUE)
 
 The realizations of the exogeneous variables are shown below.
 
-```{r, fig.width=10}
+The variables `fedintrate` and `treas3mo` appear to be collinear; we will keep `fedintrate`.
+
+```{r, fig.width=17}
 eda <- MultivariateEDA$new(data = data, var_interest = "gdp_change", var_time = "date")
 eda$plot_data(ncol = 3)
 ```
@@ -277,7 +281,11 @@ Subset to variables that may be useful given cross-correlations.
 
 ```{r}
 # Subset data to most intersting variables
-data <- data %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
+data.train <- data.train %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
+                                 fedintrate, cpichg, inventorieschg, ppichg,
+                                 homeownership, personincomechg, housingpermitschg,
+                                 treas10yr3mo, wilshirechg, ipichg))
+data.test <- data.test %>% dplyr::select(c(gdp_change, nfjobschg, ipichg, treas10yr,
                                  fedintrate, cpichg, inventorieschg, ppichg,
                                  homeownership, personincomechg, housingpermitschg,
                                  treas10yr3mo, wilshirechg, ipichg))
@@ -304,7 +312,7 @@ The models selected contained the variables `housingpermitschg` and `inventories
 lag.max = 12
 # construct VAR model with type const and variables 'housingpermitschg', 'inventorieschg'
 models = list("VARS AIC Both"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
-mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'housingpermitschg', 'inventorieschg')],
+mdl_build = ModelBuildMultivariateVAR$new(data.train[ , c(var_interest, 'housingpermitschg', 'inventorieschg')],
                                           var_interest = var_interest,
                                             mdl_list = models, verbose = 1)
 
@@ -314,7 +322,7 @@ model.both <- mdl_build$get_final_models(subset = 'r')
 
 # construct VAR model with type const and variable 'inventorieschg'
 models = list("VARS AIC Inven"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
-mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'inventorieschg')],
+mdl_build = ModelBuildMultivariateVAR$new(data.train[ , c(var_interest, 'inventorieschg')],
                                           var_interest = var_interest,
                                             mdl_list = models, verbose = 1)
 
@@ -324,7 +332,7 @@ model.inven <- mdl_build$get_final_models(subset = 'r')
 
 # construct VAR model with type const and variable 'housingpermitschg'
 models = list("VARS AIC HousePerm"    = list(select = "aic", trend_type = "const", lag.max = lag.max))
-mdl_build = ModelBuildMultivariateVAR$new(data[ , c(var_interest, 'housingpermitschg')],
+mdl_build = ModelBuildMultivariateVAR$new(data.train[ , c(var_interest, 'housingpermitschg')],
                                           var_interest = var_interest,
                                             mdl_list = models, verbose = 1)
 
@@ -346,7 +354,7 @@ batch_size = 44
 n.ahead = 2
 
 # run model comparison
-mdl_compare_var = ModelCompareMultivariateVAR$new(data = data, var_interest = var_interest,
+mdl_compare_var = ModelCompareMultivariateVAR$new(data = data.train, var_interest = var_interest,
                                               mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
 
 ```
@@ -371,8 +379,24 @@ The ASE appears to be lower on average over the windows with the spread of the m
 The outliers of the ASE plot also appear to be as extreme or less extreme than the other two models.
 We will select the VAR model containing on `inventorieschg` as an explanatory variable.
 
-```{r, results='hide', warning=FALSE, message=FALSE, echo=FALSE}
-tbl <- mdl_compare_var$remove_models(c('VARS AIC Both - R', 'VARS AIC HousePerm - R'))
+```{r, warning=FALSE, message=FALSE}
+mdl_compare_var$remove_models(c('VARS AIC Both - R', 'VARS AIC HousePerm - R'))
+```
+
+### Model Fit
+
+An examination of the residuals show that the residuals of the VAR appear to be consistent with white noise.
+The autocorrelations of the residuals also appear to be consistent with white noise.
+A few autocorrelations are marginally significant, but this is with in the 95% confidence level.
+Additionally, the Ljung-Box test fails to reject the null hypothesis that the realization is not white noise at K = 24 and K = 48.
+
+```{r, echo=FALSE}
+resids <- resid(models$`VARS AIC Inven - R`$varfit)
+tbl <- tswgewrapped::evaluate_residuals(resids[ , 1])
+tbl %>%
+  select(-c(Model)) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
 ```
 
 
@@ -386,18 +410,21 @@ see *Neural Networks with Sets of Regressors* in the appedix for more details.
 A grid search is performed over number of repetitions, the number of hidden layers, and whether seasonality is allowed.
 
 ```{r, echo=FALSE}
+# variables were previously dropped for the VAR model; just bring them back
 data <- read.csv("../data/economic_indicators_all_ex_3mo_china_inc_treas3mo.csv")[1:151, ]
 data <- data %>% select(-date)
+data.train <- data[1:149, ]
+data.test <- data[150:151, ]
 ```
 
 
-```{r, results='hide'}
+```{r, results='hide', warning=FALSE}
 # setup search grid
 nnfor_grid = expand.grid(reps = c(15, 25, 35, 45),
                          hd = c(1:7),
                          allow.det.season = c(FALSE, TRUE))
 # search for best NN hyperparameters in given grid
-model = ModelBuildNNforCaret$new(data = data, var_interest = "gdp_change", m = 6,
+model = ModelBuildNNforCaret$new(data = data.train, var_interest = "gdp_change", m = 6,
                                  search = 'grid',
                                  grid = nnfor_grid,
                                  batch_size = 44, h = 2,
@@ -423,7 +450,8 @@ The ASE associated with the grid of hyperparameters is shown in the heatmap belo
 The panel (True/False) is for the seasonality option.
 Seasonality does not appear to have an affect on ASE.
 However, the combination of number of hidden layers and number of repetitions strongly affects the ASE.
-The best hyperparameters based on this grid search are 25 repetitions and 4 hidden layers, which has a mean rolling window ASE of `r final.ase`.
+The best hyperparameters based on this grid search are `r temp$reps` repetitions and `r temp$hd` hidden layers, 
+ which has a mean rolling window ASE of `r final.ase`.
 
 ```{r}
 model$plot_hyperparam_results()
@@ -438,14 +466,57 @@ model$summarize_best_hyperparams() %>%
 ```
 
 
-```{r, results='hide'}
+```{r, results='hide', warning=FALSE}
 # get back the final model
+
+# setup search grid
+nnfor_grid = expand.grid(reps = c(temp$reps),
+                         hd = c(temp$hd),
+                         allow.det.season = c(temp$allow.det.season))
+# search for best NN hyperparameters in given grid
+model = ModelBuildNNforCaret$new(data = data.train, var_interest = "gdp_change", m = 6,
+                                 search = 'grid',
+                                 grid = nnfor_grid,
+                                 batch_size = 44, h = 2,
+                                 parallel = TRUE,
+                                 seed = 1,
+                                 verbose = 1)
+
 caret_model = model$get_final_models()
-mdl_compare_nn = ModelCompareNNforCaret$new(data = data,
+mdl_compare_nn = ModelCompareNNforCaret$new(data = data.train,
                                          var_interest = var_interest,
                                          mdl_list = caret_model,
                                          verbose = 1)
 ```
+
+### Model Fit
+
+A plot of the residuals shows that the residuals do not appear to be consistent with white noise.
+This is also evident from the ACF, which has more significant autocorrelations than expected.
+However, we will keep this model as it may still be useful as we are forecasting a short horizon.
+
+
+```{r, echo=FALSE}
+# get back the nnfor mlp model
+model.nnfor <- model$get_final_models(subset = 'r')
+evaluate_residuals(as.numeric(model.nnfor$net$response))
+
+# get the residuals 
+values.fitted <- as.numeric(model.nnfor$fitted)
+size <- length(data.train$gdp_change)
+diff.size <- length(data.train$gdp_change) - length(values.fitted) + 1
+resids <- values.fitted - data.train$gdp_change[diff.size : size]
+
+tbl <- tswgewrapped::evaluate_residuals(resids)
+tbl %>%
+  select(-c(Model)) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+```
+
+
+### Forecast Results
 
 ```{r}
 # plot the rolling window forecasts
@@ -458,12 +529,7 @@ p = mdl_compare_nn$plot_batch_forecasts()
 p = mdl_compare_nn$plot_batch_ases() 
 ```
 
-
-## Ensemble Mode
-
-
-
-## Comparison
+## Comparison of Base Models
 
 ```{r}
 # build compare model object
@@ -479,6 +545,19 @@ mdl_combine$plot_boxplot_ases()
 
 ```{r}
 mdl_combine$plot_batch_forecasts()
+```
+
+
+
+## Ensemble Model
+
+```{r}
+mdl_combine$create_ensemble()
+```
+
+```{r}
+mdl_combine$get_tabular_metrics(ases = FALSE) %>% na.omit()
+mdl_combine$statistical_compare()
 ```
 
 
