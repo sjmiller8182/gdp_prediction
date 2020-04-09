@@ -109,7 +109,7 @@ px = plotts.sample.wge(x)
 We start the analysis with an assessment of startionarity of the realization.
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
-check_stationarity(x)
+check_stationarity(x, ylab = 'Change in GDP', title = 'Realization of Change in GDP')
 ```
 
 ### Condition 1: Constant Mean
@@ -207,7 +207,7 @@ models = list("ARMA(2,0)" = list(phi = est.s$phi,
                                   res = est.s$res,
                                   sliding_ase = TRUE))
 
-mdl_compare_uni = tswgewrapped::ModelCompareUnivariate$new(data = x, mdl_list = models,
+mdl_compare_uni = tswgewrapped::ModelCompareUnivariate$new(data = data.train$gdp_change, mdl_list = models,
                                                        n.ahead = 2, batch_size = 44)
 ```
 
@@ -246,7 +246,7 @@ The realizations of the exogeneous variables are shown below.
 
 The variables `fedintrate` and `treas3mo` appear to be collinear; we will keep `fedintrate`.
 
-```{r, fig.width=15}
+```{r, fig.width=15, fig.height=15}
 eda <- MultivariateEDA$new(data = data, var_interest = "gdp_change", var_time = "date")
 eda$plot_data(ncol = 3)
 ```
@@ -388,7 +388,7 @@ mdl_compare_var$remove_models(c('VARS AIC Both - R', 'VARS AIC HousePerm - R'))
 An examination of the residuals show that the residuals of the VAR appear to be consistent with white noise.
 The autocorrelations of the residuals also appear to be consistent with white noise.
 A few autocorrelations are marginally significant, but this is with in the 95% confidence level.
-Additionally, the Ljung-Box test fails to reject the null hypothesis that the realization is not white noise at K = 24 and K = 48.
+Additionally, the Ljung-Box test fails to reject the null hypothesis that the realization is not white noise with K at 24 and 48.
 
 ```{r, echo=FALSE}
 resids <- resid(models$`VARS AIC Inven - R`$varfit)
@@ -510,6 +510,7 @@ tbl %>%
 
 ### Forecast Results
 
+
 ```{r}
 # plot the rolling window forecasts
 p = mdl_compare_nn$plot_batch_forecasts()
@@ -524,8 +525,10 @@ p = mdl_compare_nn$plot_batch_ases()
 ## Comparison of Base Models
 
 ```{r}
+newxreg <- data.test %>% dplyr::select(-!!var_interest)
+
 # build compare model object
-mdl_combine = ModelCombine$new(data = data, 
+mdl_combine = ModelCombine$new(data = data.train, 
                                var_interest = var_interest,
                                uni_models = mdl_compare_uni, 
                                var_models = mdl_compare_var, 
@@ -550,6 +553,10 @@ mdl_combine$create_ensemble()
 ```{r}
 mdl_combine$get_tabular_metrics(ases = FALSE) %>% na.omit()
 mdl_combine$statistical_compare()
+```
+
+```{r}
+#mdl_combine$predict_ensemble(naive = TRUE, newxreg = newxreg)
 ```
 
 
