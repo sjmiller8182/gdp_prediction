@@ -510,19 +510,29 @@ tbl %>%
 
 ### Forecast Results
 
+The rolling window forecasts for the neural network model is shown below.
+In general, the forecasts do not appear to capture the variance of the realization.
+In fact, the forecasts are in the opposite direction of the realization such as the instance near time step 75.
+This model also appears to miss the dips near step 100.
 
 ```{r}
 # plot the rolling window forecasts
 p = mdl_compare_nn$plot_batch_forecasts()
 ```
 
+The plot of ASE over time shows that the ASE appears to spike frequently, especially near sharp changes in the realization.
 
-```{r}
+```{r, warning=FALSE}
 # plot the ASC over time
 p = mdl_compare_nn$plot_batch_ases() 
 ```
 
 ## Comparison of Base Models
+
+The rolling window ASE distributions for each type of model constructed are shown below.
+Overall, the ARMA(2, 0) model produces forecasts with the least error as the mean and upper IQR line appear to have a lower value than the other two models.
+Each model has a window forecast ASE above a value of 60. 
+These are the forests for the steap dip in the realization after time step 100, indicating that none of the models are forecasting this change.
 
 ```{r}
 newxreg <- data.test %>% dplyr::select(-!!var_interest)
@@ -537,6 +547,13 @@ mdl_combine = ModelCombine$new(data = data.train,
 # plot the distributions of ASE from the rolling windows
 mdl_combine$plot_boxplot_ases()
 ```
+
+Comparing the rolling window forecasts of each model, we can make several observations.
+The ARMA model appears to be conservative, but generally captures the movement of the realization.
+The VAR model captures the movement of the realization, but wanders away from the realization in some cases.
+The neural network model does not capture the movement of the realization as well as the ARMA model or the VAR model.
+This is particularly evident in the second half of the forecasts where the neural network appears to have a high variance.
+Additionally, all models appear to lag the major dip in the realization after time step 100.
 
 ```{r}
 mdl_combine$plot_batch_forecasts()
