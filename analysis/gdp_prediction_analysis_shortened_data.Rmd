@@ -144,10 +144,13 @@ Since the process generating the realization is assumed to be stationary, we wil
 
 ### Model ID
 
-```{r, echo=FALSE}
+```{r}
 # get the top five models selected by AIC and BIC
 aicbic.tables <- aicbic(x, 0:12, 0:3, silent = TRUE)
+```
 
+
+```{r, echo=FALSE}
 # print the aic table
 aicbic.tables[[1]] %>%
   kable() %>%
