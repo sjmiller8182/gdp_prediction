@@ -124,7 +124,7 @@ px = plotts.sample.wge(data_train$gdp_change)
 We start the analysis with an assessment of startionarity of the realization.
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
-check_stationarity(data_train$gdp_change, ylab = 'Change in GDP', title = 'Realization of Change in GDP')
+tswgewrapped::check_stationarity(data_train$gdp_change, ylab = 'Change in GDP', title = 'Realization of Change in GDP')
 ```
 
 ### Condition 1: Constant Mean
@@ -161,7 +161,7 @@ Since the process generating the realization is assumed to be stationary, we wil
 
 ```{r, warning=FALSE}
 # get the top five models selected by AIC and BIC
-aicbic.tables <- aicbic(data_train$gdp_change, 0:12, 0:3, silent = TRUE)
+aicbic.tables <- tswgewrapped::aicbic(data_train$gdp_change, 0:12, 0:3, silent = TRUE)
 ```
 
 
@@ -201,8 +201,8 @@ The following factored model is suggested by the MLE fit:
 ```{r results='hide'}
 # setup object with unitvariate model
 models = list("AR(2)" = list(phi = est.s$phi, vara = est.s$avar, res = est.s$res, sliding_ase = TRUE))
-mdl_compare_uni = ModelCompareUnivariate$new(data = data_train, var_interest = var_interest, mdl_list = models,
-                                             n.ahead = n.ahead, batch_size = batch_size)
+mdl_compare_uni = tswgewrapped::ModelCompareUnivariate$new(data = data_train, var_interest = var_interest, mdl_list = models,
+                                                           n.ahead = n.ahead, batch_size = batch_size)
 ```
 
 #### Evaluation of the Residuals
@@ -253,7 +253,7 @@ tbl <- mdl_compare_uni$plot_batch_ases(only_sliding = TRUE)
 The realizations of the exogeneous variables are shown below.
 
 ```{r, fig.width=10, fig.height=10}
-eda <- MultivariateEDA$new(data = data_train, var_interest = var_interest)
+eda <- tswgewrapped::MultivariateEDA$new(data = data_train, var_interest = var_interest)
 eda$plot_data(ncol = 3)
 ```
 
@@ -295,8 +295,8 @@ models = list("VAR BIC None" = list(select = "bic", trend_type = "none", lag.max
               "VAR BIC Both" = list(select = "bic", trend_type = "both", lag.max = lag.max))
 
 # instantiate the model build object
-mdl_build_var = ModelBuildMultivariateVAR$new(data = data_train, var_interest = var_interest,
-                                              mdl_list = models, verbose = 0)
+mdl_build_var = tswgewrapped::ModelBuildMultivariateVAR$new(data = data_train, var_interest = var_interest,
+                                                            mdl_list = models, verbose = 0)
 ```
 
 The model building process shows that even though we had used lag.max = 10, the p (lag order) selected by VARSelect was 6.
@@ -339,8 +339,8 @@ for (name in names(models)){
 
 ```{r}
 # Initialize the ModelCompareMultivariateVAR object
-mdl_compare_var = ModelCompareMultivariateVAR$new(data = data_train, var_interest = var_interest,
-                                                  mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
+mdl_compare_var = tswgewrapped::ModelCompareMultivariateVAR$new(data = data_train, var_interest = var_interest,
+                                                                mdl_list = models, n.ahead = n.ahead, batch_size = batch_size, verbose = 1)
 ```
 
 Note: 
@@ -394,10 +394,10 @@ Since it is sometimes hard to figure out the hyperparameters to be used for the 
 
 ```{r, results='hide', warning=FALSE}
 # search for best NN hyperparameters in given grid
-model = ModelBuildNNforCaret$new(data = data_train, var_interest = var_interest,
-                                 search = 'random', tuneLength = 5, parallel = TRUE, seed = 1,
-                                 batch_size = batch_size, h = n.ahead, 
-                                 verbose = 1)
+model = tswgewrapped::ModelBuildNNforCaret$new(data = data_train, var_interest = var_interest,
+                                               search = 'random', tuneLength = 5, parallel = TRUE, seed = 1,
+                                               batch_size = batch_size, h = n.ahead, 
+                                               verbose = 1)
 
 ```
 
@@ -473,9 +473,9 @@ tbl <- tswgewrapped::evaluate_residuals(resids)
 
 ```{r warning = FALSE}
 # Initialize the ModelCompareNNforCaret object
-mdl_compare_mlp = ModelCompareNNforCaret$new(data = data_train, var_interest = var_interest,
-                                             mdl_list = caret_model,
-                                             verbose = 0)
+mdl_compare_mlp = tswgewrapped::ModelCompareNNforCaret$new(data = data_train, var_interest = var_interest,
+                                                           mdl_list = caret_model,
+                                                           verbose = 0)
 ```
 
 ## Comparison the best models
@@ -484,12 +484,12 @@ mdl_compare_mlp = ModelCompareNNforCaret$new(data = data_train, var_interest = v
 newxreg <- data_test %>% dplyr::select(-!!var_interest)
 
 # build compare model object
-mdl_combine = ModelCombine$new(data = data_train, 
-                               var_interest = var_interest,
-                               uni_models = mdl_compare_uni, 
-                               var_models = mdl_compare_var, 
-                               mlp_models = mdl_compare_mlp,
-                               verbose = 1)
+mdl_combine = tswgewrapped::ModelCombine$new(data = data_train, 
+                                             var_interest = var_interest,
+                                             uni_models = mdl_compare_uni, 
+                                             var_models = mdl_compare_var, 
+                                             mlp_models = mdl_compare_mlp,
+                                             verbose = 1)
 ```
 
 The rolling window ASE distributions for each type of model constructed are shown below.
@@ -627,7 +627,11 @@ cbind(test_var_interest,
 
 ## Conclusion
 
-TODO
+* GDP data was very noisy and overall, models are not able to capture variance in this data.
+* The univariate model AR(2) performs better than VAR and MLP models.
+* Ensembles appear to improve forecasts, but further analysis should be performed since our test dataset consisted of only 2 data points. Further validation of the ensembles would be necessary to verify that the ensembles improve the forecasts with sliding window validation (unfortunately, we did not have enough data to perform this analysis).
+* Addition of other exogenous variables with even stronger cross correlations may improve performance of multivariate models.
+
 
 # References
 
