@@ -3,16 +3,16 @@ title: "GDP Prediction"
 author: "Nikhil Gutpa and Stuart Miller"
 date: "`r Sys.time()`"
 output:
-  github_document: 
-    toc: yes
-    toc_depth: 6
-  word_document:
-    toc: yes
-    toc_depth: '6'
   html_document:
     toc: yes
     toc_depth: 6
     toc_float: yes
+  word_document:
+    toc: yes
+    toc_depth: '6'
+  github_document: 
+    toc: yes
+    toc_depth: 6
 always_allow_html: yes
 ---
 
@@ -217,7 +217,6 @@ tbl %>%
   kable() %>%
   kable_styling(bootstrap_options = "striped", full_width = F)
 ```
-
 
 #### Model Characterisics
 
@@ -461,26 +460,12 @@ tbl <- tswgewrapped::evaluate_residuals(resids)
 
 ### Forecast Results
 
-```{r}
+```{r warning = FALSE}
 caret_model = model$get_final_models(subset = 'a')
 # Initialize the ModelCompareNNforCaret object
 mdl_compare_mlp = ModelCompareNNforCaret$new(data = data_train, var_interest = var_interest,
                                              mdl_list = caret_model,
                                              verbose = 0)
-```
-
-The rolling window forecasts for the neural network model (all models in the grid) is shown below.
-
-```{r fig.width = 8}
-# plot the rolling window forecasts
-p = mdl_compare_mlp$plot_batch_forecasts()
-```
-
-The plot of ASE over time shows that the ASE appears to spike frequently, especially near sharp changes in the realization.
-
-```{r, warning=FALSE, fig.width = 8}
-# plot the ASC over time
-p = mdl_compare_mlp$plot_batch_ases() 
 ```
 
 ## Comparison the best models
@@ -607,6 +592,16 @@ ASE3 = mean((ensemble3$ensemble - test_var_interest$gdp_change)^2)
 print(paste0("The ASE value with the glm ensemble = ", round(ASE3, 4)))
 ```
 
+#### Comparing Ensembles
+
+```{r}
+cbind(test_var_interest,
+      ensemble1 %>% dplyr::mutate(ensemble_median = ensemble) %>%  dplyr::select(-ensemble),
+      ensemble2 %>% dplyr::mutate(ensemble_mean = ensemble) %>%  dplyr::select(ensemble_mean),
+      ensemble3 %>% dplyr::mutate(ensemble_glm = ensemble) %>%  dplyr::select(ensemble_glm)) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F)
+```
 
 ## Conclusion
 
