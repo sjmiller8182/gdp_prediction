@@ -84,7 +84,7 @@ p = mdl_compare_uni$plot_simple_forecasts(zoom = 20)
 
 ## 1.2 VAR
 
-```{r, fig.width=15, fig.height=15}
+```{r, fig.width=10, fig.height=10}
 eda <- MultivariateEDA$new(data = data_train, var_interest = "gdp_change")
 eda$plot_data(ncol = 3)
 ```
