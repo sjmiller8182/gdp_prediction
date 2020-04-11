@@ -437,6 +437,17 @@ final.ase <- filter(res, reps == best$reps &
 
 The best hyperparameters based on this grid search are `r best$reps` repetitions and `r best$hd` hidden layers, and allow.det.season = `r best$allow.det.season` which has a mean rolling window ASE of `r final.ase`.
 
+```{r}
+# Final Model
+caret_model = model$get_final_models(subset = 'a')
+caret_model$finalModel
+```
+
+```{r}
+# Plot Final Model
+plot(caret_model$finalModel)
+```
+
 ### Model Fit
 
 A plot of the residuals shows that the residuals are consistent with white noise with about as many excursions as expected in the ACF plot.
@@ -461,7 +472,6 @@ tbl <- tswgewrapped::evaluate_residuals(resids)
 ### Forecast Results
 
 ```{r warning = FALSE}
-caret_model = model$get_final_models(subset = 'a')
 # Initialize the ModelCompareNNforCaret object
 mdl_compare_mlp = ModelCompareNNforCaret$new(data = data_train, var_interest = var_interest,
                                              mdl_list = caret_model,
@@ -551,7 +561,7 @@ ASE1 = mean((ensemble1$ensemble - test_var_interest$gdp_change)^2)
 ```
 
 ```{r echo=FALSE}
-print(paste0("The ASE value with the naive median ensemble = ", round(ASE1, 4)))
+cat(paste0("\nThe Test ASE value with the naive median ensemble = ", round(ASE1, 4)))
 ```
 
 #### Naive with combine = 'mean'
@@ -570,7 +580,7 @@ ASE2 = mean((ensemble2$ensemble - test_var_interest$gdp_change)^2)
 ```
 
 ```{r echo=FALSE}
-print(paste0("The ASE value with the naive mean ensemble = ", round(ASE2, 4)))
+cat(paste0("\nThe Test ASE value with the naive mean ensemble = ", round(ASE2, 4)))
 ```
 
 #### glm ensemble
@@ -589,7 +599,19 @@ ASE3 = mean((ensemble3$ensemble - test_var_interest$gdp_change)^2)
 ```
 
 ```{r echo=FALSE}
-print(paste0("The ASE value with the glm ensemble = ", round(ASE3, 4)))
+cat(paste0("\nThe Test ASE value with the glm ensemble = ", round(ASE3, 4)))
+```
+
+```{r}
+ASE_uni = mean((ensemble3$`AR(2)` - test_var_interest$gdp_change)^2)
+ASE_var = mean((ensemble3$`VAR BIC Both - R` - test_var_interest$gdp_change)^2)
+ASE_mlp = mean((ensemble3$reps13_hd1_sdetFALSE - test_var_interest$gdp_change)^2)
+```
+
+```{r echo=FALSE}
+cat(paste0("\nThe Test ASE value with the Univariate AR(2) Model = ", round(ASE_uni, 4)))
+cat(paste0("\nThe Test ASE value with the Multivariate VAR Model = ", round(ASE_var, 4)))
+cat(paste0("\nThe Test ASE value with the Neural Network Model = ", round(ASE_mlp, 4)))
 ```
 
 #### Comparing Ensembles
