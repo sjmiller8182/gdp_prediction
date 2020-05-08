@@ -1,4 +1,4 @@
-# Predicting the next recession
+# Predicting the Next Recession
 
 ## Overview
 
