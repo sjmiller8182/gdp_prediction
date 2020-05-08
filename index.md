@@ -12,6 +12,15 @@ A working definition of a recession is two consecutive quarters of decrease in G
 Thus, we will use a 2-step ahead forecast in evaluating models.
 50 quarters of historical data will be used for training models to predict the next 2 quarters.
 
+## Data
+
+Quarterly observations of change in GDP and 18 exogenous variables were collected from 1982 Q1 to 2019 Q3.
+The data used in this analysis was collected from 
+[Federal Reserve Economic Data (FRED) Repository](https://fred.stlouisfed.org/),
+which is provided by the Federal Reserve Bank of Saint Louis.
+
+A detailed description of the data is provided in the data [README](./data/README.md).
+
 ## Analysis and Presentation
 
 * [Full Analysis](./analysis/gdp_prediction_analysis.html): Rendered analysis file
