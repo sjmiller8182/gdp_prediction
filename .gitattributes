@@ -1,0 +1,3 @@
+# override linguist - ignore documentation
+# treat html as documentation
+*.html linguist-documentation
